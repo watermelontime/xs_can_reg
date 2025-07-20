@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CAN Konfigurator</title>
+  <!-- <link rel="manifest" href="manifest.json" /> -->
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+</head>
+<body>
+<main>
+
+<h1>XS_CAN Register Settings Evaluator</h1>
+
+<h3>CAN Clock settings</h3>
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Value</th>
+      <th>Unit</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Frequency</td>
+      <td><input type="number" id="par_clk_freq" class="input-field" /></td>
+      <td>MHz</td>
+    </tr>
+    <tr>
+      <td>Clock period</td>
+      <td><input type="text" id="res_clk_period" class="result-field" readonly /></td>
+      <td>ns</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>CAN XL Bit Timing</h3>
+<!-- Bit Timing Drawing -->
+<svg id="DrawingBTArb" width="342" height="60"></svg>
+<svg id="DrawingBTXLdata" width="342" height="60"></svg>
+<svg id="DrawingBTXLdataPWM" width="342" height="60"></svg>
+
+<!-- widht of legend set in JavaScript -->
+<div id="DrawingBTLegend" class="legend">
+  <div class="legend-item"><span class="legend-color" style="background:#555555"></span>SyncSeg</div>
+  <!-- <div class="legend-item"><span class="legend-color" style="background:#4CAF50"></span>PropSeg</div> -->
+  <div class="legend-item"><span class="legend-color" style="background:#2196F3"></span>PropSeg+PhaseSeg1</div>
+  <div class="legend-item"><span class="legend-color" style="background:#FF0000"></span>SP</div>
+  <div class="legend-item"><span class="legend-color" style="background:#FF9800"></span>PhaseSeg2</div>
+  <div class="legend-item"><span class="legend-color" style="background:#800080"></span>SSP Offset</div>
+  <div class="legend-item"><span class="legend-color" style="background:#999999"></span>SJW</div>
+</div>
+
+<!-- Bit Timing Parameters Table -->
+<table id="BitTimingTable">
+  <thead>
+    <tr>
+      <th colspan="3" class="headline_in_table">Bit Timing Properties</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th>Arb.<br>phase</th>
+      <th>Data<br>phase</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Bit-rate [Mbit/s]</td>
+      <td><input type="text" id="res_bitrate_arb" class="result-field" readonly /></td>
+      <td><input type="text" id="res_bitrate_dat" class="result-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>SP [%]</td>
+      <td><input type="text" id="res_sp_arb" class="result-field" readonly /></td>
+      <td><input type="text" id="res_sp_dat" class="result-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>SSP [%]</td>
+      <td>---</td>
+      <td><input type="text" id="res_ssp_dat" class="result-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>tq per bit time</td>
+      <td><input type="text" id="res_tqperbit_arb" class="result-field" readonly /></td>
+      <td><input type="text" id="res_tqperbit_dat" class="result-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>tq length [ns]</td>
+      <td colspan="2" class="table_colspan_center"><input type="text" id="res_tqlen" class="result-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>Bit length [ns]</td>
+      <td><input type="text" id="res_bitlength_arb" class="result-field" readonly /></td>
+      <td><input type="text" id="res_bitlength_dat" class="result-field" readonly /></td>
+    </tr>
+  </tbody>
+  <thead>
+    <tr>
+      <th colspan="3" class="headline_in_table">Bit timing settings</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th>Arb.</th>
+      <th>Data</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>BRP</td>
+      <td colspan="2" class="table_colspan_center"><input type="text" id="par_brp" class="input-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>Prop+PhaseSeg1</td>
+      <td><input type="text" id="par_prop_and_phaseseg1_arb" class="input-field" readonly /></td>
+      <td><input type="text" id="par_prop_and_phaseseg1_dat" class="input-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>PhaseSeg2</td>
+      <td><input type="text" id="par_phaseseg2_arb" class="input-field" readonly /></td>
+      <td><input type="text" id="par_phaseseg2_dat" class="input-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>SJW</td>
+      <td><input type="text" id="par_sjw_arb" class="input-field" readonly /></td>
+      <td><input type="text" id="par_sjw_dat" class="input-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>TDC</td>
+      <td>---</td>
+      <td><input type="checkbox" id="par_tdc_dat" class="input-field" disabled /></td>
+    </tr>
+    <tr>
+      <td>SSP Offset</td>
+      <td>---</td>
+      <td><input type="text" id="par_sspoffset_dat" class="input-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>TMS</td>
+      <td>---</td>
+      <td><input type="checkbox" id="par_tms" class="input-field" disabled /></td>
+    </tr>
+	</tbody>
+  <thead>
+    <tr>
+      <th colspan="3" class="headline_in_table">PWM settings</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th>Arb.</th>
+      <th>Data</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>PWMO</td>
+      <td>---</td>
+      <td><input type="text" id="par_pwmo" class="input-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>PWMS</td>
+      <td>---</td>
+      <td><input type="text" id="par_pwms" class="input-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>PWML</td>
+      <td>---</td>
+      <td><input type="text" id="par_pwml" class="input-field" readonly /></td>
+    </tr>
+  </tbody>
+  <thead>
+    <tr>
+      <th colspan="3" class="headline_in_table">PWM properties</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th>Arb.</th>
+      <th>Data</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>PWM length [ns]</td>
+      <td>---</td>
+      <td><input type="text" id="res_pwm_symbol_len_ns" class="result-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>PWM length [cycle]</td>
+      <td>---</td>
+      <td><input type="text" id="res_pwm_symbol_len_clk_cycles" class="result-field" readonly /></td>
+    </tr>
+    <tr>
+      <td>PWMs per bit bime</td>
+      <td>---</td>
+      <td><input type="text" id="res_pwm_symbols_per_bit_time" class="result-field" readonly /></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Register Values</h3>
+<textarea id="userInputRegisterValues" class="register-textarea" placeholder="Enter here register values.
+MODE 0x00000607
+NBTP 0x3FBF3F3F
+XBTP 0x00504F27
+PCFG 0x00000000"></textarea>
+<br><br>
+<button type="button" id="processRegisterValuesButton" class="styled-button">process register values</button>
+
+<h3>Validation Report</h3>
+<textarea id="reportTextArea" class="register-textarea" placeholder="Validation report will appear here after processing register values..." readonly style="width: 1400px; min-height: 700px;"></textarea>
+
+<!-- load JavaScript file(s); type=module means loading is possible in .js files itself -->
+<script type="module" src="script_main.js"></script>
+<!--  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+-->
+
+</main>
+
+</body>
+</html>
