@@ -12,6 +12,9 @@ main {
   border-radius: 20px;
   padding: 1.5rem;
   box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
 }
 
 /* Tabellenlayout */
@@ -107,6 +110,7 @@ th, td {
 .styled-button {
   padding: 0.2em 0.2em;
   margin-left: 0em;
+  margin-top: 1rem; /* Add space above button */
   font-size: 1em;
   font-weight: bold;
   color: white;
@@ -197,11 +201,73 @@ svg {
 
 .register-textarea {
     width: 300px;
-    height: 250px;
+    height: 450px;
     padding: 16px 20px;
     font-size: 1.2rem;
     text-align: left;
     border: 2px solid #ccc;
     border-radius: 12px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive 3-column layout */
+.responsive-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.column {
+    flex: 0 0 auto; /* Don't grow or shrink by default */
+    min-width: 280px; /* Reduced minimum width for better wrapping */
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background-color: #fafafa;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-column {
+    flex: 0 0 330px; /* Fixed width - don't grow or shrink */
+    min-width: 300px; /* Reduced minimum width */
+    background-color: #f0f8ff; /* Light blue background */
+    border: 1px solid #e0e8f0;
+}
+
+.register-column {
+    flex: 0 0 350px; /* Fixed width - don't grow or shrink */
+    min-width: 320px; /* Reduced minimum width */
+    background-color: #f0f8ff; /* Light green background */
+    border: 1px solid #e8f0e0;
+}
+
+.report-column {
+    flex: 1 1 350px; /* Allow to grow and take remaining space */
+    min-width: 320px; /* Reduced minimum width */
+    background-color: #f0f8ff; /* Light orange background */
+    border: 1px solid #f0e8e0;
+}
+
+/* Adjust textarea sizes for columns */
+.register-column .register-textarea,
+.report-column .register-textarea {
+    width: 100%;
+    min-width: 300px;
+    box-sizing: border-box;
+}
+
+.report-textarea {
+    height: 500px; /* Larger height for validation report */
+    flex: 1; /* Fill remaining vertical space in column */
+    min-height: 400px; /* Minimum height for readability */
+    resize: vertical; /* Allow vertical resizing */
+}
+
+/* Keep headers at fixed size, don't let them grow */
+.column h3 {
+    flex: 0 0 auto;
+    margin-top: 0rem;
+    margin-bottom: 1rem;
 }
