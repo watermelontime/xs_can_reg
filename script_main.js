@@ -825,6 +825,8 @@ function processUserRegisterValues() {
     return;
   }
   
+  // TODO: next step ueberlegen
+  // z.B. In einer Funktion: Ergebnisse berechnen und Report dazu schreiben
   // b) Check if all required registers are present
   const registerPresenceValidationReport = examineUserRegisterPresenceXS_CAN(registerValues);
   if (registerPresenceValidationReport.hasErrors) {
@@ -865,6 +867,4 @@ function processUserRegisterValues() {
 
   // Display: Validation Reoprts in HTML textarea
   displayValidationReport(parseValidationReport, registerPresenceValidationReport, registerFieldsValidationReport, paramRangeValidationReport, consistencyValidation);
-
-  // TODO: new HTML parameter: Error Signaling (ES) enabled/disabled: par_es
 }
