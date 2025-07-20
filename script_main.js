@@ -13,6 +13,8 @@ import * as draw_svg from './draw_bits_svg.js';
 
 // ... rest of your code
 // global variable definitions
+let par_clk_freq_g = 160; // Global variable for CAN clock frequency in MHz
+
 const floatParams = [
   'par_clk_freq'
 ];
@@ -40,9 +42,6 @@ const exludeFromPrintResults = [
   'res_pwml'
 ];
 
-//const paramFields  = Array.from(document.querySelectorAll('input[id^="par_"], select[id^="par_"]'));
-//const resultFields = Array.from(document.querySelectorAll('input[id^="res_"]'));
-
 // when document is loaded: initialize page
 document.addEventListener('DOMContentLoaded', init);
 
@@ -51,6 +50,9 @@ document.addEventListener('DOMContentLoaded', init);
 function init() {
   // set eventlistener: when parameter changes => calculate
   initEventListeners();
+
+  // Initialize the clock frequency input field with default value
+  initializeClockFrequencyHtmlField();
 
   // Initialize textarea with default register values
   initializeRegisterTextArea();
@@ -68,6 +70,51 @@ function initEventListeners() {
     processButton.addEventListener('click', processUserRegisterValues);
   } else {
     console.warn('[Warning] Process register button not found in HTML');
+  }
+
+  // HTML CLK_FREQ NPUT: Add event listener for the CAN clock frequency input field
+  const clkFreqHtmlField = document.getElementById('par_clk_freq');
+  if (clkFreqHtmlField) {
+    clkFreqHtmlField.addEventListener('change', handleClockFrequencyChange); // fires when focus leaves field
+    //clkFreqHtmlField.addEventListener('input', handleClockFrequencyChange); // fires when input changes (during typing)
+  } else {
+    console.warn('[Warning] Clock frequency input field not found in HTML');
+  }
+}
+
+// ===================================================================================
+// Handle clock frequency change event
+function handleClockFrequencyChange(event) {
+  const newValue = parseFloat(event.target.value);
+  const clkFreqField = event.target;
+  
+  // Update global variable with the new value from HTML
+  if (!isNaN(newValue) && newValue > 0) {
+    par_clk_freq_g = newValue;
+    console.log(`[Info] Clock frequency updated to: ${par_clk_freq_g} MHz`);
+    
+    // Remove error highlighting if value is valid
+    clkFreqField.classList.remove("input-error");
+    
+    // Execute processUserRegisterValues() after updating the global variable
+    processUserRegisterValues();
+  } else {
+    console.warn('[Warning] Invalid clock frequency value:', event.target.value);
+    // Add error highlighting to the input field
+    clkFreqField.classList.add("input-error");
+  }
+}
+
+// ===================================================================================
+// Initialize the clock frequency input field with default value
+function initializeClockFrequencyHtmlField() {
+  const clkFreqHtmlField = document.getElementById('par_clk_freq');
+  if (clkFreqHtmlField) {
+    // Set the input field to the global variable value (default 160 MHz)
+    clkFreqHtmlField.value = par_clk_freq_g;
+    console.log(`[Info] Initialized HTML clock frequency field to: ${par_clk_freq_g} MHz`);
+  } else {
+    console.warn('[Warning] initializeClockFrequencyHtmlField(): Clock frequency input field not found in HTML');
   }
 }
 
@@ -206,11 +253,11 @@ function calculateResultsFromUserRegisterValues(params) {
   const results = {};
 
   // Calculate results
-  results['res_clk_period']   = 1000/params.par_clk_freq;
+  results['res_clk_period']   = 1000/par_clk_freq_g; // 1000 / MHz = ns
   results['res_tqperbit_arb'] = 1 + params.par_prop_and_phaseseg1_arb + params.par_phaseseg2_arb;
   results['res_tqperbit_dat'] = 1 + params.par_prop_and_phaseseg1_dat + params.par_phaseseg2_dat;
-  results['res_bitrate_arb']  = params.par_clk_freq / (params.par_brp * results.res_tqperbit_arb);
-  results['res_bitrate_dat']  = params.par_clk_freq / (params.par_brp * results.res_tqperbit_dat);
+  results['res_bitrate_arb']  = par_clk_freq_g / (params.par_brp * results.res_tqperbit_arb);
+  results['res_bitrate_dat']  = par_clk_freq_g / (params.par_brp * results.res_tqperbit_dat);
   results['res_sp_arb']       = (1 - params.par_phaseseg2_arb/results.res_tqperbit_arb) * 100;
   results['res_sp_dat']       = (1 - params.par_phaseseg2_dat/results.res_tqperbit_dat) * 100;
 
@@ -421,13 +468,7 @@ function decodeParamsFromUserRegisterValuesXS_CAN(registerValues) {
     params.par_pwml = params.reg.pcfg.PWML + 1;
     params.par_pwms = params.reg.pcfg.PWMS + 1;
   }
-  
-  // TODO: how to deal with CAN_CLK: set in HTML, read on change into global variable?
-  // Set default values for missing parameters
-  if (!('par_clk_freq' in params)) {
-    params.par_clk_freq = 160; // Default 160 MHz
-  }
-
+ 
   return params;
 }
 
@@ -825,7 +866,5 @@ function processUserRegisterValues() {
   // Display: Validation Reoprts in HTML textarea
   displayValidationReport(parseValidationReport, registerPresenceValidationReport, registerFieldsValidationReport, paramRangeValidationReport, consistencyValidation);
 
-  // Copilot: Enable inline code change! Not via Chat!
-  // TODO: read CAN_CLK from HTML and set params.par_clk_freq (event listener on change of CAN_CLK input field)
   // TODO: new HTML parameter: Error Signaling (ES) enabled/disabled: par_es
 }
