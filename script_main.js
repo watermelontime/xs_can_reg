@@ -8,8 +8,8 @@
 // - decode all registers that where found. Only skip the calculations and stuff like that.
 
 // import drawing functions
-//import { drawBitTiming, drawPWMsymbols } from './draw_bits_svg.js';
 import * as draw_svg from './draw_bits_svg.js';
+import * as x_can from './x_can.js';
 
 // ... rest of your code
 // global variable definitions
@@ -292,13 +292,16 @@ function calculateResultsFromUserRegisterValues(params) {
 
 // ===================================================================================
 // parseUserRegisterValues: Parse text and generate object with registerName: value as integer
-function parseUserRegisterValues(userRegText) {
+function parseUserRegisterValues(userRegText, reg) {
   const registerValues = {};
-  const validationReport = {
+  
+  // Initialize parse output in reg object
+  reg.parse_output = {
     reports: [],
     hasErrors: false,
     hasWarnings: false
   };
+  
   const lines = userRegText.split('\n');
   
   for (const line of lines) {
@@ -312,23 +315,30 @@ function parseUserRegisterValues(userRegText) {
         const intValue = parseInt(hexValue, 16);
         if (!isNaN(intValue)) {
           registerValues[registerName] = intValue;
-          validationReport.reports.push({
+          
+          // Store in reg object
+          if (!reg[registerName]) {
+            reg[registerName] = {};
+          }
+          reg[registerName].int32 = intValue;
+          
+          reg.parse_output.reports.push({
             severityLevel: 0, // info
             msg: `Parsed register ${registerName}: 0x${hexValue.toUpperCase()}`
           });
         } else {
-          validationReport.reports.push({
+          reg.parse_output.reports.push({
             severityLevel: 3, // error
             msg: `Invalid hex value for ${registerName}: ${hexValue}`
           });
-          validationReport.hasErrors = true;
+          reg.parse_output.hasErrors = true;
         }
       } else {
-        validationReport.reports.push({
+        reg.parse_output.reports.push({
           severityLevel: 3, // Error
           msg: `Invalid line format: "${trimmedLine}"`
         });
-        validationReport.hasErrors = true;
+        reg.parse_output.hasErrors = true;
       }
     }
   }
@@ -336,451 +346,13 @@ function parseUserRegisterValues(userRegText) {
   // Add summary message
   const registerCount = Object.keys(registerValues).length;
   if (registerCount > 0) {
-    validationReport.reports.push({
+    reg.parse_output.reports.push({
       severityLevel: 0, // info
       msg: `Registers parsed successfully: ${registerCount}`
     });
   }
 
-  return { registerValues, validationReport };
-}
-
-// ===================================================================================
-// examineUserRegisterValues: Check if all required registers are present
-function examineUserRegisterPresenceXS_CAN(registerValues) {
-  const requiredRegisters = ['MODE', 'NBTP', 'XBTP', 'PCFG']; // TODO: add DBTP, give list of results: BT, MH_RX, MH_TX, etc.
-  const validationReport = {
-    reports: [],
-    hasErrors: false,
-    hasWarnings: false
-  };
-  
-  for (const regName of requiredRegisters) {
-    if (!(regName in registerValues)) {
-      validationReport.reports.push({
-        severityLevel: 3, // error
-        msg: `Missing required register: ${regName}`
-      });
-      validationReport.hasErrors = true;
-    }
-  }
-  
-  if (!validationReport.hasErrors) {
-    validationReport.reports.push({
-      severityLevel: 0, // info
-      msg: 'All required registers are present for CAN XL Bit Timing'
-    });
-  }
-  
-  return validationReport;
-}
-
-// Helper function to extract bits from register value
-function getBits(regVal, endBit, startBit) {
-  const length = endBit - startBit + 1;
-  const mask = (1 << length) - 1;
-  return (regVal >> startBit) & mask;
-}
-
-// ===================================================================================
-// decodeParamsFromUserRegisterValues: Extract parameters from register values
-function decodeParamsFromUserRegisterValuesXS_CAN(registerValues, params) {
-  // Initialize register structure
-  params.reg = {
-    mode: {},
-    nbtp: {},
-    xbtp: {},
-    pcfg: {}
-  };
-  
-  // Extract parameters from MODE register
-  if ('MODE' in registerValues) {
-    const modeReg = registerValues.MODE;
-    
-    // 1. Decode all individual bits of MODE register
-    params.reg.mode.TSSE = getBits(modeReg, 13, 13);  // Transceiver Sharing Switch Enable
-    params.reg.mode.LCHB = getBits(modeReg, 12, 12);  // Light Commander High Bit Rate
-    params.reg.mode.FIME = getBits(modeReg, 11, 11);  // Fault Injection Module Enable
-    params.reg.mode.EFDI = getBits(modeReg, 10, 10);  // Error Flag/Frame Dissable
-    params.reg.mode.XLTR = getBits(modeReg, 9, 9);    // TMS Enable (XL Transceiver present)
-    params.reg.mode.SFS  = getBits(modeReg, 8, 8);    // Time Stamp Position: Start of Frame (1), End of Frame (0)
-    params.reg.mode.RSTR = getBits(modeReg, 7, 7);    // Restircted Mode Enable
-    params.reg.mode.MON  = getBits(modeReg, 6, 6);    // (Bus) Monitoring Mode Enable
-    params.reg.mode.TXP  = getBits(modeReg, 5, 5);    // TX Pause
-    params.reg.mode.EFBI = getBits(modeReg, 4, 4);    // Edge Filtering during Bus Integration
-    params.reg.mode.PXHD = getBits(modeReg, 3, 3);    // Protocol Exception Handling Disable
-    params.reg.mode.TDCE = getBits(modeReg, 2, 2);    // TDC: Transmitter Delay Compensation Enable
-    params.reg.mode.XLOE = getBits(modeReg, 1, 1);    // XL Operation Enable
-    params.reg.mode.FDOE = getBits(modeReg, 0, 0);    // FD Operation Enable
-    
-    // 2. Decode values needed for bit timing calculation
-    params.par_tms = (params.reg.mode.XLTR === 1);
-    params.par_tdc_dat = (params.reg.mode.TDCE === 1);
-  }
-  
-  // Extract parameters from NBTP register
-  if ('NBTP' in registerValues) {
-    const nbtpReg = registerValues.NBTP;
-    
-    // 1. Decode all individual bits of NBTP register
-    params.reg.nbtp.BRP = getBits(nbtpReg, 29, 25);     // Bit Rate Prescaler
-    params.reg.nbtp.NTSEG1 = getBits(nbtpReg, 24, 16);  // Nominal Time Segment 1
-    params.reg.nbtp.NTSEG2 = getBits(nbtpReg, 14, 8);   // Nominal Time Segment 2
-    params.reg.nbtp.NSJW = getBits(nbtpReg, 6, 0);      // Nominal Synchronization Jump Width
-    
-    // 2. Decode values needed for bit timing calculation
-    params.par_brp = params.reg.nbtp.BRP + 1;
-    params.par_prop_and_phaseseg1_arb = params.reg.nbtp.NTSEG1 + 1;
-    params.par_phaseseg2_arb = params.reg.nbtp.NTSEG2 + 1;
-    params.par_sjw_arb = params.reg.nbtp.NSJW + 1;
-  }
-  
-  // Extract parameters from XBTP register
-  if ('XBTP' in registerValues) {
-    const xbtpReg = registerValues.XBTP;
-    
-    // 1. Decode all individual bits of XBTP register
-    params.reg.xbtp.XTDCO = getBits(xbtpReg, 31, 24);   // XL Transmitter Delay Compensation Offset
-    params.reg.xbtp.XTSEG1 = getBits(xbtpReg, 23, 16);  // XL Time Segment 1
-    params.reg.xbtp.XTSEG2 = getBits(xbtpReg, 14, 8);   // XL Time Segment 2
-    params.reg.xbtp.XSJW = getBits(xbtpReg, 6, 0);      // XL Synchronization Jump Width
-    
-    // 2. Decode values needed for bit timing calculation
-    params.par_sspoffset_dat = params.reg.xbtp.XTDCO + 1;
-    params.par_prop_and_phaseseg1_dat = params.reg.xbtp.XTSEG1 + 1;
-    params.par_phaseseg2_dat = params.reg.xbtp.XTSEG2 + 1;
-    params.par_sjw_dat = params.reg.xbtp.XSJW + 1;
-  }
-  
-  // Extract parameters from PCFG register (if TMS is enabled)
-  if ('PCFG' in registerValues) {
-    const pcfgReg = registerValues.PCFG;
-    
-    // 1. Decode all individual bits of PCFG register
-    params.reg.pcfg.PWMO = getBits(pcfgReg, 21, 16);    // PWM Offset
-    params.reg.pcfg.PWML = getBits(pcfgReg, 13, 8);     // PWM Low
-    params.reg.pcfg.PWMS = getBits(pcfgReg, 5, 0);      // PWM Short
-    
-    // 2. Decode values needed for calculation (if TMS is enabled)
-    params.par_pwmo = params.reg.pcfg.PWMO;
-    params.par_pwml = params.reg.pcfg.PWML + 1;
-    params.par_pwms = params.reg.pcfg.PWMS + 1;
-  }
- 
-  return params;
-}
-
-// ===================================================================================
-// Process Nominal Bit Timing Register: Extract parameters, validate ranges, calculate results, generate report
-function procRegsBitTiming(registerValues, params, reg, results) {
-
-  // CAN Clock Frequency and Period: Calculate and Report
-  results['res_clk_period']   = 1000/par_clk_freq_g; // 1000 / MHz = ns
-
-  reg.general= {};
-  reg.general.report = []; // Initialize report array
-
-  reg.general.report.push({
-      severityLevel: 0, // info
-      msg: `CAN Clock\n   Frequency = ${par_clk_freq_g} MHz\n   Period = ${results.res_clk_period} ns`
-  });
-
-
-  // === MODE: Extract parameters from register ==========================
-  if ('MODE' in registerValues) {
-    const regValue = registerValues.MODE;
-    
-    // 0. Initialize register structure
-    reg.mode = {};
-    reg.mode.fields = {};
-    reg.mode.report = []; // Initialize report array
-
-    // 1. Decode all individual bits of MODE register
-    reg.mode.fields.TSSE = getBits(regValue, 13, 13);  // Transceiver Sharing Switch Enable
-    reg.mode.fields.LCHB = getBits(regValue, 12, 12);  // Light Commander High Bit Rate
-    reg.mode.fields.FIME = getBits(regValue, 11, 11);  // Fault Injection Module Enable
-    reg.mode.fields.EFDI = getBits(regValue, 10, 10);  // Error Flag/Frame Dissable
-    reg.mode.fields.XLTR = getBits(regValue, 9, 9);    // TMS Enable (XL Transceiver present)
-    reg.mode.fields.SFS  = getBits(regValue, 8, 8);    // Time Stamp Position: Start of Frame (1), End of Frame (0)
-    reg.mode.fields.RSTR = getBits(regValue, 7, 7);    // Restircted Mode Enable
-    reg.mode.fields.MON  = getBits(regValue, 6, 6);    // (Bus) Monitoring Mode Enable
-    reg.mode.fields.TXP  = getBits(regValue, 5, 5);    // TX Pause
-    reg.mode.fields.EFBI = getBits(regValue, 4, 4);    // Edge Filtering during Bus Integration
-    reg.mode.fields.PXHD = getBits(regValue, 3, 3);    // Protocol Exception Handling Disable
-    reg.mode.fields.TDCE = getBits(regValue, 2, 2);    // TDC: Transmitter Delay Compensation Enable
-    reg.mode.fields.XLOE = getBits(regValue, 1, 1);    // XL Operation Enable
-    reg.mode.fields.FDOE = getBits(regValue, 0, 0);    // FD Operation Enable
-    
-    // 2. Decode values needed for bit timing calculation
-    params.par_tms = (reg.mode.fields.XLTR === 1);
-    params.par_tdc_dat = (reg.mode.fields.TDCE === 1);
-
-    // 3. Generete human-readable register report
-    reg.mode.report.push({
-        severityLevel: 0, // info
-        msg: `Register MODE: Operating Mode\n   [TSSE] Transceiver Sharing Switch Enable = ${reg.mode.fields.TSSE}\n   [LCHB] FD Light Commander High Bit Rate Mode Enable = ${reg.mode.fields.LCHB}\n   [FIME] Fault Injection Module Enable = ${reg.mode.fields.FIME}\n   [EFDI] Error Flag/Frame Disable = ${reg.mode.fields.EFDI}\n   [XLTR] TMS Enable (XL Transceiver present) = ${reg.mode.fields.XLTR}\n   [SFS] Time Stamp Position: Start of Frame (1), End of Frame (0) = ${reg.mode.fields.SFS}\n   [RSTR] Restricted Mode Enable = ${reg.mode.fields.RSTR}\n   [MON] (Bus) Monitoring Mode Enable = ${reg.mode.fields.MON}\n   [TXP] TX Pause = ${reg.mode.fields.TXP}\n   [EFBI] Edge Filtering during Bus Integration = ${reg.mode.fields.EFBI}\n   [PXHD] Protocol Exception Handling Disable = ${reg.mode.fields.PXHD}\n   [TDCE] TDC: Transmitter Delay Compensation Enable = ${reg.mode.fields.TDCE}\n   [XLOE] XL Operation Enable = ${reg.mode.fields.XLOE}\n   [FDOE] FD Operation Enable = ${reg.mode.fields.FDOE}`
-    });
-  }
-
-  // === NBTP: Extract parameters from register ==========================
-  if ('NBTP' in registerValues) {
-    const regValue = registerValues.NBTP;
-
-    // 0. Initialize register structure
-    reg.nbtp = {};
-    reg.nbtp.fields = {};
-    reg.nbtp.report = []; // Initialize report array
-
-    // 1. Decode all individual bits of NBTP register
-    reg.nbtp.fields.BRP    = getBits(regValue, 29, 25) + 1;  // Bit Rate Prescaler
-    reg.nbtp.fields.NTSEG1 = getBits(regValue, 24, 16) + 1;  // Nominal Time Segment 1
-    reg.nbtp.fields.NTSEG2 = getBits(regValue, 14, 8) + 1;   // Nominal Time Segment 2
-    reg.nbtp.fields.NSJW   = getBits(regValue, 6, 0) + 1;    // Nominal Synchronization Jump Width
-
-    // 2. Decode params needed for bit timing calculation
-    params.par_brp = reg.nbtp.fields.BRP;
-    params.par_prop_and_phaseseg1_arb = reg.nbtp.fields.NTSEG1;
-    params.par_phaseseg2_arb = reg.nbtp.fields.NTSEG2;
-    params.par_sjw_arb = reg.nbtp.fields.NSJW;
-
-    // 3. Generete human-readable register report
-    reg.nbtp.report.push({
-        severityLevel: 0, // info
-        msg: `Register NBTP: Arbitration Phase Nominal Bit Timing and Prescaler\n   [BRP] Bit Rate Prescaler = ${reg.nbtp.fields.BRP}\n   [NTSEG1] Nominal Time Segment 1 = ${reg.nbtp.fields.NTSEG1}\n   [NTSEG2] Nominal Time Segment 2 = ${reg.nbtp.fields.NTSEG2}\n   [NSJW] Nominal Synchronization Jump Width = ${reg.nbtp.fields.NSJW}`
-    });
-
-    // 4. calculate results
-    results['res_tqlen']         = results.res_clk_period * params.par_brp;
-    results['res_tqperbit_arb']  = 1 + params.par_prop_and_phaseseg1_arb + params.par_phaseseg2_arb;
-    results['res_bitrate_arb']   = par_clk_freq_g / (params.par_brp * results.res_tqperbit_arb);
-    results['res_bitlength_arb'] = 1000 / results.res_bitrate_arb;
-    results['res_sp_arb']        = (1 - params.par_phaseseg2_arb/results.res_tqperbit_arb) * 100;
-	
-    // 5. Generate Report about settings
-    reg.nbtp.report.push({
-        severityLevel: 0, // info
-        msg: `Nominal Bitrate (Arbitration Phase)\n   Bitrate = ${results.res_bitrate_arb} Mbit/s\n   Bit Length = ${results.res_bitlength_arb} ns\n   TQ per Bit = ${results.res_tqperbit_arb}, Sample Point = ${results.res_sp_arb}`
-    });
-
-    // TODO: check for SJW <= min(PhaseSeg1, PhaseSeg2)
-    // TODO: check for phase segment length >= 2
-  }
-
-  // === DBTP: Extract parameters from register ==========================
-  // TODO: implement DBTP register handling
-
-  // === XBTP: Extract parameters from register ==========================
-  if ('XBTP' in registerValues) {
-    const regValue = registerValues.XBTP;
-
-    // 0. Initialize register structure
-    reg.xbtp = {};
-    reg.xbtp.fields = {};
-    reg.xbtp.report = []; // Initialize report array
-
-    // 1. Decode all individual bits of XBTP register
-    reg.xbtp.fields.XTDCO  = getBits(regValue, 31, 24) + 1;  // XL Transmitter Delay Compensation Offset
-    reg.xbtp.fields.XTSEG1 = getBits(regValue, 23, 16) + 1;  // XL Time Segment 1
-    reg.xbtp.fields.XTSEG2 = getBits(regValue, 14, 8) + 1;   // XL Time Segment 2
-    reg.xbtp.fields.XSJW   = getBits(regValue, 6, 0) + 1;    // XL Synchronization Jump Width
-    
-    // 2. Decode values needed for bit timing calculation
-    params.par_sspoffset_dat = reg.xbtp.fields.XTDCO;
-    params.par_prop_and_phaseseg1_dat = reg.xbtp.fields.XTSEG1;
-    params.par_phaseseg2_dat = reg.xbtp.fields.XTSEG2;
-    params.par_sjw_dat = reg.xbtp.fields.XSJW;
-
-    // different output based on XLOE
-    if (reg.mode.fields.XLOE == 0) {
-      // 3. Generete human-readable register report
-      reg.xbtp.report.push({
-        severityLevel: 2, // warning
-        msg: `Register XBTP: XL Data Phase Bit Timing\n   XL Operation is disabled (MODE.XLOE=0)`
-      });
-
-      // 4. calculate results
-      results['res_tqperbit_dat']  = 'OFF';
-      results['res_bitrate_dat']   = 'OFF';
-      results['res_bitlength_dat'] = 'OFF';
-      results['res_sp_dat']        = 'OFF';
-
-
-    } else { // MODE.XLOE == 1
-      // 3. Generete human-readable register report
-      reg.xbtp.report.push({
-          severityLevel: 0, // info
-          msg: `Register XBTP: XL Data Phase Bit Timing\n   [XTDCO] XL Transmitter Delay Compensation Offset = ${reg.xbtp.fields.XTDCO}\n   [XTSEG1] XL Time Segment 1 = ${reg.xbtp.fields.XTSEG1}\n   [XTSEG2] XL Time Segment 2 = ${reg.xbtp.fields.XTSEG2}\n   [XSJW] XL Synchronization Jump Width = ${reg.xbtp.fields.XSJW}`
-      });
-
-      // 4. calculate results
-      results['res_tqperbit_dat']  = 1 + params.par_prop_and_phaseseg1_dat + params.par_phaseseg2_dat;
-      results['res_bitrate_dat']   = par_clk_freq_g / (params.par_brp * results.res_tqperbit_dat);
-      results['res_bitlength_dat'] = 1000 / results.res_bitrate_dat;
-      results['res_sp_dat']        = (1 - params.par_phaseseg2_dat/results.res_tqperbit_dat) * 100;
-
-      // 5. Generate Report about settings
-      // Register content
-      reg.xbtp.report.push({
-          severityLevel: 0, // info
-          msg: `XL Data Phase Bitrate\n   Bitrate = ${results.res_bitrate_dat} Mbit/s\n   Bit Length = ${results.res_bitlength_dat} ns\n   TQ per Bit = ${results.res_tqperbit_dat}\n   Sample Point = ${results.res_sp_dat}`
-      });
-
-      // TODO: check for SJW <= min(PhaseSeg1, PhaseSeg2)
-      // TODO: check for phase segment length >= 2
-
-      // CAN Clock Frequency as recommended in CiA 612-1?
-      if ((par_clk_freq_g != 160) && (par_clk_freq_g != 80)) {
-        reg.pcfg.report.push({
-          severityLevel: 2, // warning
-          msg: `Recommended CAN Clock Frequency for CAN XL is 80 MHz or 160 MHz. Current value is ${par_clk_freq_g} MHz.`
-        });
-      }
-
-      // Minimum number of TQ/Bit?
-      if (results.res_tqperbit_dat < 8) {
-        reg.pcfg.report.push({
-          severityLevel: 2, // warning
-          msg: `Recommended minimum TQ per XL Data Bit is 8. Current number of TQ per XL Data bit = ${results.res_tqperbit_dat}.`
-        });
-      }
-
-      // Ratio of Arb. Bit Time / XL Data Bit Time >= 2 ?
-      if (reg.mode.fields.EFDI == 0) { // Error Signaling is enabled
-        if (results.res_tqperbit_arb < (2 * results.res_tqperbit_dat)) {
-          reg.pcfg.report.push({
-            severityLevel: 3, // error
-            msg: `Minimum Ratio of [XL Data Bitrate / Nominal Bitrate] = ${results.res_tqperbit_arb / results.res_tqperbit_dat}. Minimum ratio is 2, when Error Signaling is enabled (MODE.ESDI=0).`
-          });
-        }
-      } // end if EFDI
-    } // end if XLOE
-    
-  } // end if XBTP
-  
-  // === PCFG: Extract parameters from register (if TMS is enabled) ==============
-  if ('PCFG' in registerValues) {
-    const regValue = registerValues.PCFG;
-
-    // 0. Initialize register structure
-    reg.pcfg = {};
-    reg.pcfg.fields = {};
-    reg.pcfg.report = []; // Initialize report array
-
-    // 1. Decode all individual bits of PCFG register
-    reg.pcfg.fields.PWMO = getBits(regValue, 21, 16);     // PWM Offset
-    reg.pcfg.fields.PWML = getBits(regValue, 13, 8) + 1;  // PWM Low
-    reg.pcfg.fields.PWMS = getBits(regValue, 5, 0) + 1;   // PWM Short
-
-    // 2. Decode values needed for calculation (if TMS is enabled)
-    params.par_pwmo = reg.pcfg.fields.PWMO;
-    params.par_pwml = reg.pcfg.fields.PWML;
-    params.par_pwms = reg.pcfg.fields.PWMS;
-
-    // different output based on XLOE & TMS
-    if ((reg.mode.fields.XLOE == 0) || (reg.mode.fields.TMS == 0)) {
-      // 3. Generete human-readable register report
-      reg.pcfg.report.push({
-        severityLevel: 2, // warning
-        msg: `Register PCFG: PWME Configuration (PWM Symbols)\n   XL Operation (MODE.XLOE=0) OR Transceiver Mode Switch (MODE.TMS=0) is disabled`
-      });
-
-      // 4. calculate results
-      results['res_pwm_symbol_len_ns']         = 'OFF';
-    	results['res_pwm_symbol_len_clk_cycles'] = 'OFF';   
-    	results['res_pwm_symbols_per_bit_time']  = 'OFF';
-
-    } else { // MODE.TMS == 1
-      // 3. Generete human-readable register report
-      reg.pcfg.report.push({
-          severityLevel: 0, // info
-          msg: `Register PCFG: PWME Configuration (PWM Symbols)\n   [PWMO] PWM Offset = ${reg.pcfg.fields.PWMO}\n   [PWML] PWM phase Long = ${reg.pcfg.fields.PWML}\n   [PWMS] PWM phase Short = ${reg.pcfg.fields.PWMS}`
-      });
-
-      // 4. calculate results
-      results['res_pwm_symbol_len_ns']         = (params.par_pwms + params.par_pwml) * results.res_clk_period;
-	    results['res_pwm_symbol_len_clk_cycles'] = (params.par_pwms + params.par_pwml);
-	    results['res_pwm_symbols_per_bit_time']  = (results.res_tqperbit_dat * params.par_brp) / results.res_pwm_symbol_len_clk_cycles;
-      
-      // 5. Generate Report about settings
-      // Register content
-      reg.pcfg.report.push({
-          severityLevel: 0, // info
-          msg: `PWM Configuration\n   PWM Symbol Length = ${results.res_pwm_symbol_len_ns} ns\n   PWM Symbol Length (clk cycles) = ${results.res_pwm_symbol_len_clk_cycles} clock cycles\n   PWM Symbols per XL Data Bit Time = ${results.res_pwm_symbols_per_bit_time}`
-      });
-
-      // Ratio of XL Data Bit Time to PWM Symbol Length
-      if (!Number.isInteger(results.res_pwm_symbols_per_bit_time)) {
-        reg.pcfg.report.push({
-          severityLevel: 3, // error
-          msg: `PWM Symbols per XL Data Bit Time (${results.res_pwm_symbols_per_bit_time.toFixed(2)}) is not an integer. Wrong PWM configuration.`
-        });
-      }
-
-      // PWM Offset correctness
-   		results['res_pwmo'] = (results.res_tqperbit_arb * params.par_brp) % results.res_pwm_symbol_len_clk_cycles;
-      if (results.res_pwmo !== params.par_pwmo) {
-        reg.pcfg.report.push({
-          severityLevel: 3, // error
-          msg: `PWM Offset (PCFG.PWMO = ${params.par_pwmo}) is wrong. Correct value is PCFG.PWMO = ${results.res_pwmo}`
-        });
-      }
-
-    } // end if XLOE || TMS
-
-  } // end if PCFG
-
-}
-
-
-// ===================================================================================
-// generateRegisterBitReport: Generate detailed register bit information
-function generateRegisterFieldReport(params) {
-  // Hint: Register Name is derived from structure key, e.g., 'mode' -> 'MODE'
-
-  const validationReport = {
-    reports: [],
-    hasErrors: false,
-    hasWarnings: false
-  };
-
-  if (!params.reg) {
-    validationReport.reports.push({
-      severityLevel: 3, // Error
-      msg: 'No register structure found in parameters'
-    });
-    validationReport.hasErrors = true;
-    return validationReport;
-  }
-
-  // Generic processing of all register objects
-  for (const [registerKey, registerObj] of Object.entries(params.reg)) {
-    if (registerObj && typeof registerObj === 'object') {
-      // Convert register key to uppercase for display (e.g., 'mode' -> 'MODE')
-      const registerName = registerKey.toUpperCase();
-      
-      // Generate field list for this register
-      const registerFields = Object.entries(registerObj)
-        .map(([field, value]) => `${field}=${value}`)
-        .join(', ');
-      
-      // Add register bit report
-      validationReport.reports.push({
-        severityLevel: 0, // info
-        msg: `Register ${registerName}: ${registerFields}`
-      });
-    }
-  }
-
-  // Add summary message
-  const registerCount = Object.keys(params.reg).length;
-  if (registerCount > 0) {
-    validationReport.reports.push({
-      severityLevel: 0, // info
-      msg: `Registers printed: ${registerCount}`
-    });
-  }
-
-  return validationReport;
+  return reg.parse_output;
 }
 
 // ===================================================================================
@@ -867,7 +439,7 @@ function checkConsistencyOfUserRegisterValues(params, results) {
 
 // ===================================================================================
 // displayValidationReport: Format and display validation reports in HTML textarea
-function displayValidationReport(parseValidationReport, reg) {
+function displayValidationReport(reg) {
   const reportTextArea = document.getElementById('reportTextArea');
   if (!reportTextArea) {
     console.warn('[Warning] displayValidationReport(): Report textarea not found in HTML');
@@ -880,6 +452,12 @@ function displayValidationReport(parseValidationReport, reg) {
   // Generate allRegReports from reg object
   const allRegReports = [];
   if (reg && typeof reg === 'object') {
+    // Add parse output reports if available
+    if (reg.parse_output && Array.isArray(reg.parse_output.reports)) {
+      allRegReports.push(...reg.parse_output.reports);
+    }
+
+    // Add reports from each register section
     Object.values(reg).forEach(regSection => {
       if (regSection && regSection.report && Array.isArray(regSection.report)) {
         allRegReports.push(...regSection.report);
@@ -890,12 +468,7 @@ function displayValidationReport(parseValidationReport, reg) {
   // Combine all validation reports into a single array
   const allValidationReports = [];
   
-  // Add parse validation reports if provided
-  if (parseValidationReport && Array.isArray(parseValidationReport.reports)) {
-    allValidationReports.push(...parseValidationReport.reports);
-  }
-  
-  // Add register reports
+  // Add register reports (which now includes parse output)
   allValidationReports.push(...allRegReports);
   
   if (allValidationReports.length === 0) {
@@ -1079,81 +652,53 @@ function displaySVGs(params, results) {
 // ===================================================================================
 // Process User Register Values from Text Area - Updated main function
 function processUserRegisterValues() {
-  const paramsFromRegs = {}; // Initialize params object
+  const params = {}; // Initialize params object
   const results = {}; // Initialize results object
   const reg = {}; // Initialize register object
 
-  // Init Test stuff
-  const paramsFromRegsTest = {}; // Initialize params object
-  const regTest = {}; // Initialize register object
-  const resultTest = {}; // Initialize result object
+  // pre-process: global clock frequency from HTML input
+  // CAN Clock Frequency and Period: Calculate and Report
+  results['res_clk_period']   = 1000/par_clk_freq_g; // 1000 / MHz = ns
+
+  reg.general= {};
+  reg.general.report = []; // Initialize report array
+
+  reg.general.report.push({
+      severityLevel: 0, // info
+      msg: `CAN Clock\n   Frequency = ${par_clk_freq_g} MHz\n   Period = ${results.res_clk_period} ns`
+  });
 
   // get the text area content
   const userRegText = document.getElementById('userInputRegisterValues').value;
   
   // a) Parse the text and generate an object
-  const parseResult = parseUserRegisterValues(userRegText);
-  const registerValues = parseResult.registerValues;
-  const parseValidationReport = parseResult.validationReport;
-  console.log('[Info] Parsed register values:', registerValues);
+  parseUserRegisterValues(userRegText, reg);
+  console.log('[Info] Parsed register values (reg object):', reg);
   // Check for parsing errors
-  if (parseValidationReport.hasErrors) {
+  if (reg.parse_output.hasErrors) {
     // Display all validation reports accumulated so far
-    displayValidationReport(parseValidationReport);
+    displayValidationReport(reg);
     return;
   }
   
-  // TODO NEXT STEP: new function procRegBitTiming tut.
-  // TODO: umbauen, so dass IP-Modul wählbar: M_CAN, XS_CAN, X_CAN, etc.
-    
-  // b) Check if all required registers are present
-//  const registerPresenceValidationReport = examineUserRegisterPresenceXS_CAN(registerValues);
-//  if (registerPresenceValidationReport.hasErrors) {
-//    // Display all validation reports accumulated so far
-//    displayValidationReport(parseValidationReport, registerPresenceValidationReport);
-//    return;
-//  }
-
-  // c1) Process Bit Timing  registers
-//  procRegsBitTiming(registerValues, paramsFromRegsTest, regTest, resultTest);
-//  console.log('[Info] Experimental regTest object:', regTest);
-//  console.log('[Info] Experimental paramsFromRegsTest object:', paramsFromRegsTest);
-
-  procRegsBitTiming(registerValues, paramsFromRegs, reg, results);
-  console.log('[Info] Registers with data and reports, reg object:', reg);
-  console.log('[Info] Decoded params object:', paramsFromRegs);
-  console.log('[Info] Calculated results:', results);
-
-//  // c) Generate params object from register values
-//  decodeParamsFromUserRegisterValuesXS_CAN(registerValues, paramsFromRegs);
-//  console.log('[Info] Decoded parameters:', paramsFromRegs);
-
-//  // Generate validation report for bits/fields in registers
-//  const registerFieldsDecodeReport = generateRegisterFieldReport(paramsFromRegs);
-
-//  // d) Validate parameter ranges
-//  const paramRangeValidationReport = paramsFromRegsXLBitTimeRangeValidate(paramsFromRegs);
-//  console.log('[Info] Validated (Range) parameters:');
-
-//  // e) Calculate results from decoded parameters
-//  const results = calculateResultsFromUserRegisterValues(paramsFromRegs);
-//  console.log('[Info] Calculated results:', results);
+  // State on 2025.07.24: X_CAN stuff shifted to own file x_can.js
+  // TODO: Next Step => process parsing in two steps
+      // Step 1: parse registers into an array (main Function) => reg.raw[]  .value_int32  and .indexName
+      // Step 2: process reg.raw[] in x_can.js to get real register names => create usual register structure reg.REGISTERNAME.int32 .fields .reports
   
-//  // f) Check consistency
-//  //    e.g. if parameter combinanation is meaningful, e.g. TDC at > 1 Mbit/s, etc.
-//  const consistencyValidation = checkConsistencyOfUserRegisterValues(paramsFromRegs, results, registerValues);
-//  console.log('[Info] Checked Consistency of User Register Values');
+  // TODO: umbauen, so dass IP-Modul wählbar: M_CAN, XS_CAN, X_CAN, etc.
+  x_can.processRegsOfX_CAN(params, reg, results, par_clk_freq_g);
 
   // Display in HTML =====================================
   // display parameters in HTML fields
-  displayParameters(paramsFromRegs);
+  displayParameters(params);
 
   // Display calculation results in HTML fields
   displayResults(results);
 
   // Display SVGs in HTML
-  displaySVGs(paramsFromRegs, results); 
+  displaySVGs(params, results); 
 
   // Display: Validation Reports in HTML textarea
-  displayValidationReport(parseValidationReport, reg);
+  displayValidationReport(reg);
 }
