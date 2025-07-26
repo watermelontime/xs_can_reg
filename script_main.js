@@ -123,11 +123,11 @@ function initializeClockFrequencyHtmlField() {
 function initializeRegisterTextArea() {
   const registerTextArea = document.getElementById('userInputRegisterValues');
   if (registerTextArea) {
-    // Default register values - you can customize these
-    const defaultRegisterValues = `MODE 0x00000607
-NBTP 0x00FE3F3F
-XBTP 0x08070606
-PCFG 0x00000C04`;
+    // Default register values in new address-value format
+    const defaultRegisterValues = `0x060 0x00000607
+0x064 0x00FE3F3F
+0x06C 0x08070606
+0x070 0x00000C04`;
     
     registerTextArea.value = defaultRegisterValues;
   } else {
@@ -291,52 +291,54 @@ function calculateResultsFromUserRegisterValues(params) {
 }
 
 // ===================================================================================
-// parseUserRegisterValues: Parse text and generate object with registerName: value as integer
+// parseUserRegisterValues: Parse text and generate raw register array with addr and value
 function parseUserRegisterValues(userRegText, reg) {
-  const registerValues = {};
-  
   // Initialize parse output in reg object
   reg.parse_output = {
-    reports: [],
+    report: [],
     hasErrors: false,
     hasWarnings: false
   };
+  
+  // Initialize raw register array
+  reg.raw = [];
   
   const lines = userRegText.split('\n');
   
   for (const line of lines) {
     const trimmedLine = line.trim();
     if (trimmedLine.length > 0) { // ignore empty lines
-      // Expected format: "registerName: 0xAABBCCDD" or "registerName: AABBCCDD"
-      const match = trimmedLine.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s* \s*(0x)?([0-9a-fA-F]+)$/);
+      // Expected format: "0x000 0x87654321" or "000 87654321"
+      const match = trimmedLine.match(/^(0x)?([0-9a-fA-F]+)\s+(0x)?([0-9a-fA-F]+)$/);
       if (match) {
-        const registerName = match[1];
-        const hexValue = match[3];
-        const intValue = parseInt(hexValue, 16);
-        if (!isNaN(intValue)) {
-          registerValues[registerName] = intValue;
+        const addrHex = match[2];
+        const valueHex = match[4];
+        
+        const addrValue = parseInt(addrHex, 16);
+        const intValue = parseInt(valueHex, 16);
+        
+        if (!isNaN(addrValue) && !isNaN(intValue)) {
+          // Store in raw register array
+          reg.raw.push({
+            addr: addrValue,
+            value_int32: intValue
+          });
           
-          // Store in reg object
-          if (!reg[registerName]) {
-            reg[registerName] = {};
-          }
-          reg[registerName].int32 = intValue;
-          
-          reg.parse_output.reports.push({
+          reg.parse_output.report.push({
             severityLevel: 0, // info
-            msg: `Parsed register ${registerName}: 0x${hexValue.toUpperCase()}`
+            msg: `Parsed register at address 0x${addrHex.toUpperCase()}: 0x${valueHex.toUpperCase()}`
           });
         } else {
-          reg.parse_output.reports.push({
+          reg.parse_output.report.push({
             severityLevel: 3, // error
-            msg: `Invalid hex value for ${registerName}: ${hexValue}`
+            msg: `Invalid hex values in line: "${trimmedLine}"`
           });
           reg.parse_output.hasErrors = true;
         }
       } else {
-        reg.parse_output.reports.push({
+        reg.parse_output.report.push({
           severityLevel: 3, // Error
-          msg: `Invalid line format: "${trimmedLine}"`
+          msg: `Invalid line format: "${trimmedLine}". Expected format: "0x000 0x87654321"`
         });
         reg.parse_output.hasErrors = true;
       }
@@ -344,11 +346,11 @@ function parseUserRegisterValues(userRegText, reg) {
   }
   
   // Add summary message
-  const registerCount = Object.keys(registerValues).length;
+  const registerCount = reg.raw.length;
   if (registerCount > 0) {
-    reg.parse_output.reports.push({
+    reg.parse_output.report.push({
       severityLevel: 0, // info
-      msg: `Registers parsed successfully: ${registerCount}`
+      msg: `Raw registers parsed successfully: ${registerCount}`
     });
   }
 
@@ -452,11 +454,6 @@ function displayValidationReport(reg) {
   // Generate allRegReports from reg object
   const allRegReports = [];
   if (reg && typeof reg === 'object') {
-    // Add parse output reports if available
-    if (reg.parse_output && Array.isArray(reg.parse_output.reports)) {
-      allRegReports.push(...reg.parse_output.reports);
-    }
-
     // Add reports from each register section
     Object.values(reg).forEach(regSection => {
       if (regSection && regSection.report && Array.isArray(regSection.report)) {
@@ -498,10 +495,6 @@ function displayValidationReport(reg) {
     }
   }
   
-  // Sort reports by severity level (errors first, then warnings, etc.)
-  //const sortedReports = [...allValidationReports].sort((a, b) => b.severityLevel - a.severityLevel);
-  // I do not want sorting!
-
   // Count reports by severity
   const counts = { errors: 0, warnings: 0, recommendations: 0, info: 0 };
   allValidationReports.forEach(report => {
@@ -652,28 +645,33 @@ function displaySVGs(params, results) {
 // ===================================================================================
 // Process User Register Values from Text Area - Updated main function
 function processUserRegisterValues() {
-  const params = {}; // Initialize params object
-  const results = {}; // Initialize results object
+  // Basic idea of this function:
+  // 1. Parse user input from textarea into raw register array
+  // 2. Process with the appropriate CAN IP Module function
+  //    This function fills the content of the objects: paramsHtml, resultsHtml, reg
+  // 4. Display data from params, results, reg in HTML fields and SVGs
+
+  const paramsHtml = {}; // Initialize params object
+  const resultsHtml = {}; // Initialize results object
   const reg = {}; // Initialize register object
 
   // pre-process: global clock frequency from HTML input
   // CAN Clock Frequency and Period: Calculate and Report
-  results['res_clk_period']   = 1000/par_clk_freq_g; // 1000 / MHz = ns
-
+  resultsHtml['res_clk_period']   = 1000/par_clk_freq_g; // 1000 / MHz = ns
   reg.general= {};
   reg.general.report = []; // Initialize report array
-
+  // generate report for CAN Clock
   reg.general.report.push({
       severityLevel: 0, // info
-      msg: `CAN Clock\n   Frequency = ${par_clk_freq_g} MHz\n   Period = ${results.res_clk_period} ns`
+      msg: `CAN Clock\n   Frequency = ${par_clk_freq_g} MHz\n   Period    = ${resultsHtml.res_clk_period} ns`
   });
 
   // get the text area content
   const userRegText = document.getElementById('userInputRegisterValues').value;
   
-  // a) Parse the text and generate an object
+  // a) Step 1: Parse the text and generate raw register array
   parseUserRegisterValues(userRegText, reg);
-  console.log('[Info] Parsed register values (reg object):', reg);
+  console.log('[Info] Step 1 - Parsed raw register values:', reg.raw);
   // Check for parsing errors
   if (reg.parse_output.hasErrors) {
     // Display all validation reports accumulated so far
@@ -681,23 +679,18 @@ function processUserRegisterValues() {
     return;
   }
   
-  // State on 2025.07.24: X_CAN stuff shifted to own file x_can.js
-  // TODO: Next Step => process parsing in two steps
-      // Step 1: parse registers into an array (main Function) => reg.raw[]  .value_int32  and .indexName
-      // Step 2: process reg.raw[] in x_can.js to get real register names => create usual register structure reg.REGISTERNAME.int32 .fields .reports
-  
   // TODO: umbauen, so dass IP-Modul wählbar: M_CAN, XS_CAN, X_CAN, etc.
-  x_can.processRegsOfX_CAN(params, reg, results, par_clk_freq_g);
+  x_can.processRegsOfX_CAN(reg, paramsHtml, resultsHtml, par_clk_freq_g);
 
   // Display in HTML =====================================
   // display parameters in HTML fields
-  displayParameters(params);
+  displayParameters(paramsHtml);
 
   // Display calculation results in HTML fields
-  displayResults(results);
+  displayResults(resultsHtml);
 
   // Display SVGs in HTML
-  displaySVGs(params, results); 
+  displaySVGs(paramsHtml, resultsHtml); 
 
   // Display: Validation Reports in HTML textarea
   displayValidationReport(reg);

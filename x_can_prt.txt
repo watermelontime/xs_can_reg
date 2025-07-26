@@ -1,0 +1,15 @@
+== X_CAN PRT ============================
+Address, Short name, Long Name
+0x00, ENDN, Endianness Test Register 
+0x04, PREL, PRT Release Identification Register
+0x08, STAT, PRT Status Register
+0x20, EVNT, Event Status Flags Register
+0x40, LOCK, Unlock Sequence Register
+0x44, CTRL, Control Register
+0x48, FIMC, Fault Injection Module Control Register
+0x4C, TEST, Hardware Test functions Register
+0x60, MODE, Operating Mode Register
+0x64, NBTP, Arbitration Phase Nominal Bit Timing Register
+0x68, DBTP, CAN FD Data Phase Bit Timing Register
+0x6C, XBTP, XAN XL Data Phase Bit Timing Register
+0x70, PCFG, PWME Configuration Register

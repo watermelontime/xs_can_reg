@@ -3,8 +3,12 @@ import { getBits } from './func_get_bits.js';
 
 // ===================================================================================
 // X_CAN: Process User Register Values: parse, validate, calculate results, generate report
-export function processRegsOfX_CAN(params, reg, results, par_clk_freq_g) {
+export function processRegsOfX_CAN(reg, params, results, par_clk_freq_g) {
   // TODO: make this X_CAN related function clean
+
+  // Map raw addresses to register names
+  mapRawRegistersToNames(reg);
+  console.log('[Info] Step 2 - Mapped register values (reg object):', reg);
 
   // c1) Process Bit Timing  registers
   procRegsBitTiming(params, reg, results, par_clk_freq_g);
@@ -32,6 +36,75 @@ export function processRegsOfX_CAN(params, reg, results, par_clk_freq_g) {
 //  const consistencyValidation = checkConsistencyOfUserRegisterValues(paramsFromRegs, results, registerValues);
 //  console.log('[Info] Checked Consistency of User Register Values');
 }
+
+// ===================================================================================
+// Map raw register addresses to register names and create named register structure
+function mapRawRegistersToNames(reg) {
+  // Check if parse_output exists (in reg object)
+  if (!reg.parse_output) {
+    console.warn('[X_CAN] [Warning, mapRawRegistersToNames()] reg.parse_output not found in reg object. Skipping mapping of <raw registers> to <names>. parseUserRegisterValues(userRegText, reg) must be called before this function.');
+    return;
+  }
+  
+  // Address to register name mapping based on x_can_prt.txt
+  const addressMap = {
+    0x00: { shortName: 'ENDN', longName: 'Endianness Test Register' },
+    0x04: { shortName: 'PREL', longName: 'PRT Release Identification Register' },
+    0x08: { shortName: 'STAT', longName: 'PRT Status Register' },
+    0x20: { shortName: 'EVNT', longName: 'Event Status Flags Register' },
+    0x40: { shortName: 'LOCK', longName: 'Unlock Sequence Register' },
+    0x44: { shortName: 'CTRL', longName: 'Control Register' },
+    0x48: { shortName: 'FIMC', longName: 'Fault Injection Module Control Register' },
+    0x4C: { shortName: 'TEST', longName: 'Hardware Test functions Register' },
+    0x60: { shortName: 'MODE', longName: 'Operating Mode Register' },
+    0x64: { shortName: 'NBTP', longName: 'Arbitration Phase Nominal Bit Timing Register' },
+    0x68: { shortName: 'DBTP', longName: 'CAN FD Data Phase Bit Timing Register' },
+    0x6C: { shortName: 'XBTP', longName: 'XAN XL Data Phase Bit Timing Register' },
+    0x70: { shortName: 'PCFG', longName: 'PWME Configuration Register' }
+  };
+  
+  let mappedCount = 0;
+  let unmappedCount = 0;
+  
+  // Process each raw register entry
+  for (const rawReg of reg.raw) {
+    const mapping = addressMap[rawReg.addr];
+    
+    if (mapping) {
+      // Create named register structure
+      const regName = mapping.shortName;
+      reg[regName] = {
+        int32: rawReg.value_int32,
+        name_long: mapping.longName,
+        addr: rawReg.addr
+      };
+      
+      mappedCount++;
+      
+      reg.parse_output.report.push({
+        severityLevel: 0, // info
+        msg: `Mapped address 0x${rawReg.addr.toString(16).toUpperCase().padStart(2, '0')} to register ${regName} (${mapping.longName})`
+      });
+    } else {
+      // Unknown address
+      unmappedCount++;
+      
+      reg.parse_output.report.push({
+        severityLevel: 2, // warning
+        msg: `Unknown register address: 0x${rawReg.addr.toString(16).toUpperCase().padStart(2, '0')} - register will be ignored`
+      });
+      reg.parse_output.hasWarnings = true;
+    }
+  }
+  
+  // Add summary message
+  reg.parse_output.report.push({
+    severityLevel: 0, // info
+    msg: `Address mapping completed: ${mappedCount} mapped, ${unmappedCount} unknown`
+  });
+  
+  return reg;
+} // end mapRawRegistersToNames
 
 // ===================================================================================
 // Process Nominal Bit Timing Register: Extract parameters, validate ranges, calculate results, generate report

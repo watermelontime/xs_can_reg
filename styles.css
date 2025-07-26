@@ -56,8 +56,7 @@ th, td {
 /* Font in Fields */
 .input-field,
 .result-field,
-.register-field,
-.register-textarea {
+.register-field {
   font-family: monospace;
   font-size: 1.2em;
   font-weight: bold;
@@ -199,15 +198,22 @@ svg {
   filter: grayscale(100%);
 }
 
-.register-textarea {
+.register-textarea,
+.report-textarea {
     width: 300px;
     height: 450px;
     padding: 16px 20px;
-    font-size: 1.2rem;
-    text-align: left;
     border: 2px solid #ccc;
     border-radius: 12px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.register-textarea,
+.report-textarea {
+  font-family: monospace;
+  font-size: 1.0em;
+  text-align: left;
+  font-weight: normal;
 }
 
 /* Responsive 3-column layout */
@@ -262,7 +268,6 @@ svg {
     height: 500px; /* Larger height for validation report */
     flex: 1; /* Fill remaining vertical space in column */
     min-height: 400px; /* Minimum height for readability */
-    resize: vertical; /* Allow vertical resizing */
 }
 
 /* Keep headers at fixed size, don't let them grow */
