@@ -130,11 +130,11 @@ function initializeRegisterTextArea() {
 0x020 0x00000100
 0x048 0x00000000
 0x04c 0x00000008
-0x060 0x00000007
+0x060 0x00000607
 0x064 0x00fe3f3f
 0x068 0x100f0e0e
 0x06c 0x0a090808
-0x070 0x00000000`;
+0x070 0x00000C04`;
     
     registerTextArea.value = defaultRegisterValues;
   } else {
@@ -447,7 +447,7 @@ function checkConsistencyOfUserRegisterValues(params, results) {
 }
 
 // ===================================================================================
-// displayValidationReport: Format and display validation reports in HTML textarea
+// displayValidationReport: Format and display validation reports in HTML with colors
 function displayValidationReport(reg) {
   const reportTextArea = document.getElementById('reportTextArea');
   if (!reportTextArea) {
@@ -456,7 +456,7 @@ function displayValidationReport(reg) {
   }
   
   // Clear previous content
-  reportTextArea.value = '';
+  reportTextArea.innerHTML = '';
   
   // Generate allRegReports from reg object
   const allRegReports = [];
@@ -476,7 +476,7 @@ function displayValidationReport(reg) {
   allValidationReports.push(...allRegReports);
   
   if (allValidationReports.length === 0) {
-    reportTextArea.value = 'No validation reports available.';
+    reportTextArea.innerHTML = 'No validation reports available.';
     return;
   }
   
@@ -487,6 +487,7 @@ function displayValidationReport(reg) {
       case 1: return 'R';
       case 2: return 'W';
       case 3: return 'E';
+      case 4: return 'C';
       default: return 'UNKNOWN';
     }
   }
@@ -498,18 +499,32 @@ function displayValidationReport(reg) {
       case 1: return '💡';
       case 2: return '⚠️';
       case 3: return '❌';
+      case 4: return '🧮';
       default: return '❓';
     }
   }
   
+  // Helper function to get CSS class for severity level
+  function getSeverityClass(level) {
+    switch (level) {
+      case 0: return 'report-info';
+      case 1: return 'report-recommendation';
+      case 2: return 'report-warning';
+      case 3: return 'report-error';
+      case 4: return 'report-infoCalculated';
+      default: return 'report-info';
+    }
+  }
+  
   // Count reports by severity
-  const counts = { errors: 0, warnings: 0, recommendations: 0, info: 0 };
+  const counts = { errors: 0, warnings: 0, recommendations: 0, info: 0, calculated: 0 };
   allValidationReports.forEach(report => {
     switch (report.severityLevel) {
       case 3: counts.errors++; break;
       case 2: counts.warnings++; break;
       case 1: counts.recommendations++; break;
       case 0: counts.info++; break;
+      case 4: counts.calculated++; break;
     }
   });
   
@@ -522,33 +537,39 @@ function displayValidationReport(reg) {
     minute: '2-digit',
     second: '2-digit'
   });
-  let reportText = `=== VALIDATION REPORT ${timestamp} ========\n`;
+  let reportText = `<span class="report-header">=== VALIDATION REPORT ${timestamp} ========</span>\n`;
   //reportText += `Total reports: ${sortedReports.length}\n`;
-  if (counts.errors > 0) reportText += `❌ Errors: ${counts.errors}\n`;
-  if (counts.warnings > 0) reportText += `⚠️ Warnings: ${counts.warnings}\n`;
-  if (counts.recommendations > 0) reportText += `💡 Recommendations: ${counts.recommendations}\n`;
-  if (counts.info > 0) reportText += `ℹ️ Info: ${counts.info}\n`;
-  reportText += ''.padEnd(51, '-') + '\n';
+  if (counts.errors > 0) reportText += `<span class="report-error">❌ Errors: ${counts.errors}</span>\n`;
+  if (counts.warnings > 0) reportText += `<span class="report-warning">⚠️ Warnings: ${counts.warnings}</span>\n`;
+  if (counts.recommendations > 0) reportText += `<span class="report-recommendation">💡 Recommendations: ${counts.recommendations}</span>\n`;
+  if (counts.info > 0) reportText += `<span class="report-info">ℹ️ Info: ${counts.info}</span>\n`;
+  if (counts.calculated > 0) reportText += `<span class="report-infoCalculated">🧮 Calculated: ${counts.calculated}</span>\n`;
+  reportText += '<span class="report-header">' + ''.padEnd(51, '-') + '</span>\n';
   
   // Generate detailed reports
   allValidationReports.forEach((report, index) => {
     const severityText = getSeverityText(report.severityLevel);
     const severitySymbol = getSeveritySymbol(report.severityLevel);
+    const severityClass = getSeverityClass(report.severityLevel);
     
-    // Add 10 spaces after line breaks for proper alignment
-    const formattedMsg = report.msg.replace(/\n/g, '\n        ');
+    // Add 10 spaces after line breaks for proper alignment and escape HTML
+    const formattedMsg = report.msg
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '\n        ');
     
-    reportText += `${severitySymbol} [${severityText}] ${formattedMsg}\n`;
+    //reportText += `<span class="${severityClass}">${severitySymbol} [${severityText}] ${formattedMsg}</span>\n`;
+    reportText += `<span class="${severityClass}">${severitySymbol} ${formattedMsg}</span>\n`;
   });
   
   // Add footer
-  //reportText += ''.padEnd(50, '=') + '\n';
-  reportText += '=== End of validation report ======================';
+  reportText += '<span class="report-header">=== End of validation report ======================</span>';
   
-  // Display in textarea
-  reportTextArea.value = reportText;
+  // Display in element using innerHTML
+  reportTextArea.innerHTML = reportText;
   
-  // Scroll to top of textarea
+  // Scroll to top
   reportTextArea.scrollTop = 0;
 }
 
@@ -669,7 +690,7 @@ function processUserRegisterValues() {
   reg.general.report = []; // Initialize report array
   // generate report for CAN Clock
   reg.general.report.push({
-      severityLevel: 0, // info
+      severityLevel: 4, // infoCalculated
       msg: `CAN Clock\n   Frequency = ${par_clk_freq_g} MHz\n   Period    = ${resultsHtml.res_clk_period} ns`
   });
 

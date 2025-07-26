@@ -141,7 +141,7 @@ export function procRegsBitTiming(params, reg, results, par_clk_freq_g) {
     // 3. Generete human-readable register report
     reg.MODE.report.push({
         severityLevel: 0, // info
-        msg: `Register MODE: Operating Mode\n   [TSSE] Transceiver Sharing Switch Enable = ${reg.MODE.fields.TSSE}\n   [LCHB] FD Light Commander High Bit Rate Mode Enable = ${reg.MODE.fields.LCHB}\n   [FIME] Fault Injection Module Enable = ${reg.MODE.fields.FIME}\n   [EFDI] Error Flag/Frame Disable = ${reg.MODE.fields.EFDI}\n   [XLTR] TMS Enable (XL Transceiver present) = ${reg.MODE.fields.XLTR}\n   [SFS] Time Stamp Position: Start of Frame (1), End of Frame (0) = ${reg.MODE.fields.SFS}\n   [RSTR] Restricted Mode Enable = ${reg.MODE.fields.RSTR}\n   [MON] (Bus) Monitoring Mode Enable = ${reg.MODE.fields.MON}\n   [TXP] TX Pause = ${reg.MODE.fields.TXP}\n   [EFBI] Edge Filtering during Bus Integration = ${reg.MODE.fields.EFBI}\n   [PXHD] Protocol Exception Handling Disable = ${reg.MODE.fields.PXHD}\n   [TDCE] TDC: Transmitter Delay Compensation Enable = ${reg.MODE.fields.TDCE}\n   [XLOE] XL Operation Enable = ${reg.MODE.fields.XLOE}\n   [FDOE] FD Operation Enable = ${reg.MODE.fields.FDOE}`
+        msg: `MODE: ${reg.MODE.name_long}\n   [TSSE] Transceiver Sharing Switch Enable = ${reg.MODE.fields.TSSE}\n   [LCHB] FD Light Commander High Bit Rate Mode Enable = ${reg.MODE.fields.LCHB}\n   [FIME] Fault Injection Module Enable = ${reg.MODE.fields.FIME}\n   [EFDI] Error Flag/Frame Disable = ${reg.MODE.fields.EFDI}\n   [XLTR] TMS Enable (XL Transceiver present) = ${reg.MODE.fields.XLTR}\n   [SFS] Time Stamp Position: Start of Frame (1), End of Frame (0) = ${reg.MODE.fields.SFS}\n   [RSTR] Restricted Mode Enable = ${reg.MODE.fields.RSTR}\n   [MON] (Bus) Monitoring Mode Enable = ${reg.MODE.fields.MON}\n   [TXP] TX Pause = ${reg.MODE.fields.TXP}\n   [EFBI] Edge Filtering during Bus Integration = ${reg.MODE.fields.EFBI}\n   [PXHD] Protocol Exception Handling Disable = ${reg.MODE.fields.PXHD}\n   [TDCE] TDC: Transmitter Delay Compensation Enable = ${reg.MODE.fields.TDCE}\n   [XLOE] XL Operation Enable = ${reg.MODE.fields.XLOE}\n   [FDOE] FD Operation Enable = ${reg.MODE.fields.FDOE}`
     });
   }
 
@@ -168,7 +168,7 @@ export function procRegsBitTiming(params, reg, results, par_clk_freq_g) {
     // 3. Generete human-readable register report
     reg.NBTP.report.push({
         severityLevel: 0, // info
-        msg: `Register NBTP: Arbitration Phase Nominal Bit Timing and Prescaler\n   [BRP] Bit Rate Prescaler = ${reg.NBTP.fields.BRP}\n   [NTSEG1] Nominal Time Segment 1 = ${reg.NBTP.fields.NTSEG1}\n   [NTSEG2] Nominal Time Segment 2 = ${reg.NBTP.fields.NTSEG2}\n   [NSJW] Nominal Synchronization Jump Width = ${reg.NBTP.fields.NSJW}`
+        msg: `NBTP: ${reg.NBTP.name_long}\n   [BRP] Bit Rate Prescaler = ${reg.NBTP.fields.BRP}\n   [NTSEG1] Nominal Time Segment 1 = ${reg.NBTP.fields.NTSEG1}\n   [NTSEG2] Nominal Time Segment 2 = ${reg.NBTP.fields.NTSEG2}\n   [NSJW] Nominal Synchronization Jump Width = ${reg.NBTP.fields.NSJW}`
     });
 
     // 4. calculate results
@@ -176,12 +176,12 @@ export function procRegsBitTiming(params, reg, results, par_clk_freq_g) {
     results['res_tqperbit_arb']  = 1 + params.par_prop_and_phaseseg1_arb + params.par_phaseseg2_arb;
     results['res_bitrate_arb']   = par_clk_freq_g / (params.par_brp * results.res_tqperbit_arb);
     results['res_bitlength_arb'] = 1000 / results.res_bitrate_arb;
-    results['res_sp_arb']        = (1 - params.par_phaseseg2_arb/results.res_tqperbit_arb) * 100;
+    results['res_sp_arb']        = 100-100*params.par_phaseseg2_arb/results.res_tqperbit_arb;
 	
     // 5. Generate Report about settings
     reg.NBTP.report.push({
-        severityLevel: 0, // info
-        msg: `Nominal Bitrate (Arbitration Phase)\n   Bitrate = ${results.res_bitrate_arb} Mbit/s\n   Bit Length = ${results.res_bitlength_arb} ns\n   TQ per Bit = ${results.res_tqperbit_arb}, Sample Point = ${results.res_sp_arb}`
+        severityLevel: 4, // infoCalculated
+        msg: `Nominal Bitrate (Arbitration Phase)\n   Bitrate = ${results.res_bitrate_arb} Mbit/s\n   Bit Length = ${results.res_bitlength_arb} ns\n   TQ per Bit = ${results.res_tqperbit_arb}\n   Sample Point = ${results.res_sp_arb}`
     });
 
     // TODO: check for SJW <= min(PhaseSeg1, PhaseSeg2)
@@ -216,7 +216,7 @@ export function procRegsBitTiming(params, reg, results, par_clk_freq_g) {
       // 3. Generete human-readable register report
       reg.XBTP.report.push({
         severityLevel: 2, // warning
-        msg: `Register XBTP: XL Data Phase Bit Timing\n   XL Operation is disabled (MODE.XLOE=0)`
+        msg: `XBTP: ${reg.XBTP.name_long}\n   XL Operation is disabled (MODE.XLOE=0)`
       });
 
       // 4. calculate results
@@ -230,19 +230,20 @@ export function procRegsBitTiming(params, reg, results, par_clk_freq_g) {
       // 3. Generete human-readable register report
       reg.XBTP.report.push({
           severityLevel: 0, // info
-          msg: `Register XBTP: XL Data Phase Bit Timing\n   [XTDCO] XL Transmitter Delay Compensation Offset = ${reg.XBTP.fields.XTDCO}\n   [XTSEG1] XL Time Segment 1 = ${reg.XBTP.fields.XTSEG1}\n   [XTSEG2] XL Time Segment 2 = ${reg.XBTP.fields.XTSEG2}\n   [XSJW] XL Synchronization Jump Width = ${reg.XBTP.fields.XSJW}`
+          msg: `XBTP: ${reg.XBTP.name_long}\n   [XTDCO] XL Transmitter Delay Compensation Offset = ${reg.XBTP.fields.XTDCO}\n   [XTSEG1] XL Time Segment 1 = ${reg.XBTP.fields.XTSEG1}\n   [XTSEG2] XL Time Segment 2 = ${reg.XBTP.fields.XTSEG2}\n   [XSJW] XL Synchronization Jump Width = ${reg.XBTP.fields.XSJW}`
       });
 
       // 4. calculate results
       results['res_tqperbit_dat']  = 1 + params.par_prop_and_phaseseg1_dat + params.par_phaseseg2_dat;
       results['res_bitrate_dat']   = par_clk_freq_g / (params.par_brp * results.res_tqperbit_dat);
       results['res_bitlength_dat'] = 1000 / results.res_bitrate_dat;
-      results['res_sp_dat']        = (1 - params.par_phaseseg2_dat/results.res_tqperbit_dat) * 100;
+      //results['res_sp_dat']        = (1 - params.par_phaseseg2_dat/results.res_tqperbit_dat) * 100;
+      results['res_sp_dat']        = 100-100*params.par_phaseseg2_dat/results.res_tqperbit_dat;
 
       // 5. Generate Report about settings
       // Register content
       reg.XBTP.report.push({
-          severityLevel: 0, // info
+          severityLevel: 4, // infoCalculated
           msg: `XL Data Phase Bitrate\n   Bitrate = ${results.res_bitrate_dat} Mbit/s\n   Bit Length = ${results.res_bitlength_dat} ns\n   TQ per Bit = ${results.res_tqperbit_dat}\n   Sample Point = ${results.res_sp_dat}`
       });
 
@@ -301,7 +302,7 @@ export function procRegsBitTiming(params, reg, results, par_clk_freq_g) {
       // 3. Generete human-readable register report
       reg.PCFG.report.push({
         severityLevel: 2, // warning
-        msg: `Register PCFG: PWME Configuration (PWM Symbols)\n   XL Operation (MODE.XLOE=0) OR Transceiver Mode Switch (MODE.XLTR=0) is disabled`
+        msg: `PCFG: ${reg.PCFG.name_long}\n   XL Operation (MODE.XLOE=0) OR Transceiver Mode Switch (MODE.XLTR=0) is disabled`
       });
 
       // 4. calculate results
@@ -313,7 +314,7 @@ export function procRegsBitTiming(params, reg, results, par_clk_freq_g) {
       // 3. Generete human-readable register report
       reg.PCFG.report.push({
           severityLevel: 0, // info
-          msg: `Register PCFG: PWME Configuration (PWM Symbols)\n   [PWMO] PWM Offset = ${reg.PCFG.fields.PWMO}\n   [PWML] PWM phase Long = ${reg.PCFG.fields.PWML}\n   [PWMS] PWM phase Short = ${reg.PCFG.fields.PWMS}`
+          msg: `PCFG: ${reg.PCFG.name_long}\n   [PWMO] PWM Offset = ${reg.PCFG.fields.PWMO}\n   [PWML] PWM phase Long = ${reg.PCFG.fields.PWML}\n   [PWMS] PWM phase Short = ${reg.PCFG.fields.PWMS}`
       });
 
       // 4. calculate results
@@ -324,7 +325,7 @@ export function procRegsBitTiming(params, reg, results, par_clk_freq_g) {
       // 5. Generate Report about settings
       // Register content
       reg.PCFG.report.push({
-          severityLevel: 0, // info
+          severityLevel: 4, // infoCalculated
           msg: `PWM Configuration\n   PWM Symbol Length = ${results.res_pwm_symbol_len_ns} ns\n   PWM Symbol Length (clk cycles) = ${results.res_pwm_symbol_len_clk_cycles} clock cycles\n   PWM Symbols per XL Data Bit Time = ${results.res_pwm_symbols_per_bit_time}`
       });
 
