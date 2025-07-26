@@ -124,10 +124,17 @@ function initializeRegisterTextArea() {
   const registerTextArea = document.getElementById('userInputRegisterValues');
   if (registerTextArea) {
     // Default register values in new address-value format
-    const defaultRegisterValues = `0x060 0x00000607
-0x064 0x00FE3F3F
-0x06C 0x08070606
-0x070 0x00000C04`;
+    const defaultRegisterValues = `0x000 0x87654321
+0x004 0x00000011
+0x008 0x00000000
+0x020 0x00000100
+0x048 0x00000000
+0x04c 0x00000008
+0x060 0x00000007
+0x064 0x00fe3f3f
+0x068 0x100f0e0e
+0x06c 0x0a090808
+0x070 0x00000000`;
     
     registerTextArea.value = defaultRegisterValues;
   } else {
