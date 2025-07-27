@@ -194,7 +194,7 @@ export function procRegsBitTiming(reg) {
     // 5. Generate Report about settings
     reg.NBTP.report.push({
         severityLevel: 4, // infoCalculated
-        msg: `Nominal Bitrate (Arbitration Phase)\nBitrate = ${reg.general.bt_arb.res.bitrate} Mbit/s\nBit Length = ${reg.general.bt_arb.res.bit_length} ns\nTQ per Bit = ${reg.general.bt_arb.res.tq_per_bit}\nSample Point = ${reg.general.bt_arb.res.sp}`
+        msg: `Nominal Bitrate (Arbitration Phase)\nBitrate    = ${reg.general.bt_arb.res.bitrate} Mbit/s\nBit Length = ${reg.general.bt_arb.res.bit_length} ns\nTQ per Bit = ${reg.general.bt_arb.res.tq_per_bit}\nSP         = ${reg.general.bt_arb.res.sp} %`
     });
 
     // TODO: check for SJW <= min(PhaseSeg1, PhaseSeg2)
@@ -202,7 +202,89 @@ export function procRegsBitTiming(reg) {
   }
 
   // === DBTP: Extract parameters from register ==========================
-  // TODO: implement DBTP register handling
+  if ('DBTP' in reg && reg.DBTP.int32 !== undefined) {
+    const regValue = reg.DBTP.int32;
+
+    // 0. Extend existing register structure
+    reg.DBTP.fields = {};
+    reg.DBTP.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of DBTP register
+    reg.DBTP.fields.DTDCO  = getBits(regValue, 31, 24);      // CAN FD Transmitter Delay Compensation Offset
+    reg.DBTP.fields.DTSEG1 = getBits(regValue, 23, 16) + 1;  // CAN FD Data Time Segment 1
+    reg.DBTP.fields.DTSEG2 = getBits(regValue, 14, 8) + 1;   // CAN FD Data Time Segment 2
+    reg.DBTP.fields.DSJW   = getBits(regValue, 6, 0) + 1;    // CAN FD Data Synchronization Jump Width
+
+    // 2. Store DBTP bit timing settings in general structure
+    reg.general.bt_fddata.set.ssp_offset = reg.DBTP.fields.DTDCO;
+    reg.general.bt_fddata.set.prop_and_phaseseg1 = reg.DBTP.fields.DTSEG1;
+    reg.general.bt_fddata.set.phaseseg2 = reg.DBTP.fields.DTSEG2;
+    reg.general.bt_fddata.set.sjw = reg.DBTP.fields.DSJW;
+
+    // different output based on FDOE
+    if (reg.MODE.fields.FDOE == 0) {
+      // 3. Generate human-readable register report
+      reg.DBTP.report.push({
+        severityLevel: 2, // warning
+        msg: `DBTP: ${reg.DBTP.name_long}\nFD Operation is disabled (MODE.FDOE=0)`
+      });
+
+      // 4. Set FD data phase results to OFF
+      reg.general.bt_fddata.res.tq_per_bit = 'OFF';
+      reg.general.bt_fddata.res.bitrate = 'OFF';
+      reg.general.bt_fddata.res.bit_length = 'OFF';
+      reg.general.bt_fddata.res.sp = 'OFF';
+      reg.general.bt_fddata.res.ssp = 'OFF';
+
+    } else { // MODE.FDOE == 1
+      // 3. Generate human-readable register report
+      reg.DBTP.report.push({
+          severityLevel: 0, // info
+          msg: `DBTP: ${reg.DBTP.name_long}\n[DTDCO] CAN FD Transmitter Delay Compensation Offset = ${reg.DBTP.fields.DTDCO}\n[DTSEG1] CAN FD Data Time Segment 1 = ${reg.DBTP.fields.DTSEG1}\n[DTSEG2] CAN FD Data Time Segment 2 = ${reg.DBTP.fields.DTSEG2}\n[DSJW] CAN FD Data Synchronization Jump Width = ${reg.DBTP.fields.DSJW}`
+      });
+
+      // 4. Calculate FD data phase results and store in general structure
+      reg.general.bt_fddata.res.tq_per_bit = 1 + reg.general.bt_fddata.set.prop_and_phaseseg1 + reg.general.bt_fddata.set.phaseseg2;
+      reg.general.bt_fddata.res.bitrate = reg.general.clk_freq / (reg.general.bt_arb.set.brp * reg.general.bt_fddata.res.tq_per_bit);
+      reg.general.bt_fddata.res.bit_length = 1000 / reg.general.bt_fddata.res.bitrate;
+      reg.general.bt_fddata.res.sp = 100 - 100 * reg.general.bt_fddata.set.phaseseg2 / reg.general.bt_fddata.res.tq_per_bit;
+      
+      // Calculate SSP (Secondary Sample Point) if TDC is enabled
+      if (reg.general.bt_global.set.tdc === true) {
+        reg.general.bt_fddata.res.ssp = 100 - 100*reg.general.bt_fddata.set.ssp_offset/reg.general.bt_fddata.res.tq_per_bit;
+      } else {
+        reg.general.bt_fddata.res.ssp = 0; // SSP not used when TDC disabled
+      }
+
+      // 5. Generate Report about settings
+      reg.DBTP.report.push({
+          severityLevel: 4, // infoCalculated
+          msg: `CAN FD Data Phase Bitrate\nBitrate    = ${reg.general.bt_fddata.res.bitrate} Mbit/s\nBit Length = ${reg.general.bt_fddata.res.bit_length} ns\nTQ per Bit = ${reg.general.bt_fddata.res.tq_per_bit}\nSP         = ${reg.general.bt_fddata.res.sp} %\nSSP        = ${reg.general.bt_fddata.res.ssp} %`
+      });
+
+      // TODO: check for SJW <= min(PhaseSeg1, PhaseSeg2)
+      // TODO: check for phase segment length >= 2
+
+      // Minimum number of TQ/Bit?
+      if (reg.general.bt_fddata.res.tq_per_bit < 5) {
+        reg.DBTP.report.push({
+          severityLevel: 2, // warning
+          msg: `Recommended minimum TQ per FD Data Bit is 5. Current number of TQ per FD Data bit = ${reg.general.bt_fddata.res.tq_per_bit}.`
+        });
+      }
+
+      // Ratio of Arb. Bit Time / FD Data Bit Time >= 2 ?
+      if (reg.MODE.fields.EFDI == 0) { // Error Signaling is enabled
+        if (reg.general.bt_arb.res.tq_per_bit < (2 * reg.general.bt_fddata.res.tq_per_bit)) {
+          reg.DBTP.report.push({
+            severityLevel: 3, // error
+            msg: `Minimum Ratio of [FD Data Bitrate / Nominal Bitrate] = ${reg.general.bt_arb.res.tq_per_bit / reg.general.bt_fddata.res.tq_per_bit}. Minimum ratio is 2, when Error Signaling is enabled (MODE.ESDI=0).`
+          });
+        }
+      } // end if EFDI
+    } // end if FDOE
+    
+  } // end if DBTP
 
   // === XBTP: Extract parameters from register ==========================
   if ('XBTP' in reg && reg.XBTP.int32 !== undefined) {
@@ -213,7 +295,7 @@ export function procRegsBitTiming(reg) {
     reg.XBTP.report = []; // Initialize report array
 
     // 1. Decode all individual bits of XBTP register
-    reg.XBTP.fields.XTDCO  = getBits(regValue, 31, 24) + 1;  // XL Transmitter Delay Compensation Offset
+    reg.XBTP.fields.XTDCO  = getBits(regValue, 31, 24);      // XL Transmitter Delay Compensation Offset
     reg.XBTP.fields.XTSEG1 = getBits(regValue, 23, 16) + 1;  // XL Time Segment 1
     reg.XBTP.fields.XTSEG2 = getBits(regValue, 14, 8) + 1;   // XL Time Segment 2
     reg.XBTP.fields.XSJW   = getBits(regValue, 6, 0) + 1;    // XL Synchronization Jump Width
@@ -253,7 +335,7 @@ export function procRegsBitTiming(reg) {
       reg.general.bt_xldata.res.sp = 100 - 100 * reg.general.bt_xldata.set.phaseseg2 / reg.general.bt_xldata.res.tq_per_bit;
       
       // Calculate SSP (Secondary Sample Point) if TDC is enabled
-      if (reg.general.bt_xldata.set.tdc === true) {
+      if (reg.general.bt_global.set.tdc === true) {
         reg.general.bt_xldata.res.ssp = 100 - 100*reg.general.bt_xldata.set.ssp_offset/reg.general.bt_xldata.res.tq_per_bit;
       } else {
         reg.general.bt_xldata.res.ssp = 0; // SSP not used when TDC disabled
@@ -262,7 +344,7 @@ export function procRegsBitTiming(reg) {
       // 5. Generate Report about settings
       reg.XBTP.report.push({
           severityLevel: 4, // infoCalculated
-          msg: `XL Data Phase Bitrate\nBitrate = ${reg.general.bt_xldata.res.bitrate} Mbit/s\nBit Length = ${reg.general.bt_xldata.res.bit_length} ns\nTQ per Bit = ${reg.general.bt_xldata.res.tq_per_bit}\nSample Point = ${reg.general.bt_xldata.res.sp}\nSSP = ${reg.general.bt_xldata.res.ssp}`
+          msg: `XL Data Phase Bitrate\nBitrate    = ${reg.general.bt_xldata.res.bitrate} Mbit/s\nBit Length = ${reg.general.bt_xldata.res.bit_length} ns\nTQ per Bit = ${reg.general.bt_xldata.res.tq_per_bit}\nSP         = ${reg.general.bt_xldata.res.sp} %\nSSP        = ${reg.general.bt_xldata.res.ssp} %`
       });
 
       // TODO: check for SJW <= min(PhaseSeg1, PhaseSeg2)
@@ -343,7 +425,7 @@ export function procRegsBitTiming(reg) {
       // 5. Generate Report about settings
       reg.PCFG.report.push({
           severityLevel: 4, // infoCalculated
-          msg: `PWM Configuration\nPWM Symbol Length = ${reg.general.bt_xldata.res.pwm_symbol_len_ns} ns\nPWM Symbol Length (clk cycles) = ${reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles} clock cycles\nPWM Symbols per XL Data Bit Time = ${reg.general.bt_xldata.res.pwm_symbols_per_bit_time}`
+          msg: `PWM Configuration\nPWM Symbol Length = ${reg.general.bt_xldata.res.pwm_symbol_len_ns} ns = ${reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles} clock cycles\nPWM Symbols per XL Data Bit Time = ${reg.general.bt_xldata.res.pwm_symbols_per_bit_time}`
       });
 
       // Ratio of XL Data Bit Time to PWM Symbol Length
