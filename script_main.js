@@ -11,7 +11,6 @@
 import * as draw_svg from './draw_bits_svg.js';
 import * as x_can from './x_can.js';
 
-// ... rest of your code
 // global variable definitions
 let par_clk_freq_g = 160; // Global variable for CAN clock frequency in MHz
 
@@ -130,11 +129,11 @@ function initializeRegisterTextArea() {
 0x020 0x00000100
 0x048 0x00000000
 0x04c 0x00000008
-0x060 0x00000007
+0x060 0x00000607
 0x064 0x00fe3f3f
 0x068 0x100f0e0e
 0x06c 0x0a090808
-0x070 0x00000000`;
+0x070 0x00000C04`;
     
     registerTextArea.value = defaultRegisterValues;
   } else {
@@ -447,7 +446,7 @@ function checkConsistencyOfUserRegisterValues(params, results) {
 }
 
 // ===================================================================================
-// displayValidationReport: Format and display validation reports in HTML textarea
+// displayValidationReport: Format and display validation reports in HTML with colors
 function displayValidationReport(reg) {
   const reportTextArea = document.getElementById('reportTextArea');
   if (!reportTextArea) {
@@ -456,7 +455,7 @@ function displayValidationReport(reg) {
   }
   
   // Clear previous content
-  reportTextArea.value = '';
+  reportTextArea.innerHTML = '';
   
   // Generate allRegReports from reg object
   const allRegReports = [];
@@ -476,7 +475,7 @@ function displayValidationReport(reg) {
   allValidationReports.push(...allRegReports);
   
   if (allValidationReports.length === 0) {
-    reportTextArea.value = 'No validation reports available.';
+    reportTextArea.innerHTML = 'No validation reports available.';
     return;
   }
   
@@ -487,6 +486,7 @@ function displayValidationReport(reg) {
       case 1: return 'R';
       case 2: return 'W';
       case 3: return 'E';
+      case 4: return 'C';
       default: return 'UNKNOWN';
     }
   }
@@ -498,18 +498,32 @@ function displayValidationReport(reg) {
       case 1: return '💡';
       case 2: return '⚠️';
       case 3: return '❌';
+      case 4: return '🧮';
       default: return '❓';
     }
   }
   
+  // Helper function to get CSS class for severity level
+  function getSeverityClass(level) {
+    switch (level) {
+      case 0: return 'report-info';
+      case 1: return 'report-recommendation';
+      case 2: return 'report-warning';
+      case 3: return 'report-error';
+      case 4: return 'report-infoCalculated';
+      default: return 'report-info';
+    }
+  }
+  
   // Count reports by severity
-  const counts = { errors: 0, warnings: 0, recommendations: 0, info: 0 };
+  const counts = { errors: 0, warnings: 0, recommendations: 0, info: 0, calculated: 0 };
   allValidationReports.forEach(report => {
     switch (report.severityLevel) {
       case 3: counts.errors++; break;
       case 2: counts.warnings++; break;
       case 1: counts.recommendations++; break;
       case 0: counts.info++; break;
+      case 4: counts.calculated++; break;
     }
   });
   
@@ -522,33 +536,39 @@ function displayValidationReport(reg) {
     minute: '2-digit',
     second: '2-digit'
   });
-  let reportText = `=== VALIDATION REPORT ${timestamp} ========\n`;
+  let reportText = `<span class="report-header">=== VALIDATION REPORT ${timestamp} ========</span>\n`;
   //reportText += `Total reports: ${sortedReports.length}\n`;
-  if (counts.errors > 0) reportText += `❌ Errors: ${counts.errors}\n`;
-  if (counts.warnings > 0) reportText += `⚠️ Warnings: ${counts.warnings}\n`;
-  if (counts.recommendations > 0) reportText += `💡 Recommendations: ${counts.recommendations}\n`;
-  if (counts.info > 0) reportText += `ℹ️ Info: ${counts.info}\n`;
-  reportText += ''.padEnd(51, '-') + '\n';
+  if (counts.errors > 0) reportText += `<span class="report-error">❌ Errors: ${counts.errors}</span>\n`;
+  if (counts.warnings > 0) reportText += `<span class="report-warning">⚠️ Warnings: ${counts.warnings}</span>\n`;
+  if (counts.recommendations > 0) reportText += `<span class="report-recommendation">💡 Recommendations: ${counts.recommendations}</span>\n`;
+  if (counts.info > 0) reportText += `<span class="report-info">ℹ️ Info: ${counts.info}</span>\n`;
+  if (counts.calculated > 0) reportText += `<span class="report-infoCalculated">🧮 Calculated: ${counts.calculated}</span>\n`;
+  reportText += '<span class="report-header">' + ''.padEnd(51, '-') + '</span>\n';
   
   // Generate detailed reports
   allValidationReports.forEach((report, index) => {
     const severityText = getSeverityText(report.severityLevel);
     const severitySymbol = getSeveritySymbol(report.severityLevel);
+    const severityClass = getSeverityClass(report.severityLevel);
     
-    // Add 10 spaces after line breaks for proper alignment
-    const formattedMsg = report.msg.replace(/\n/g, '\n        ');
+    // Add 10 spaces after line breaks for proper alignment and escape HTML
+    const formattedMsg = report.msg
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '\n      '); // indentation of lines 2 to N
     
-    reportText += `${severitySymbol} [${severityText}] ${formattedMsg}\n`;
+    //reportText += `<span class="${severityClass}">${severitySymbol} [${severityText}] ${formattedMsg}</span>\n`;
+    reportText += `<span class="${severityClass}">${severitySymbol} ${formattedMsg}</span>\n`;
   });
   
   // Add footer
-  //reportText += ''.padEnd(50, '=') + '\n';
-  reportText += '=== End of validation report ======================';
+  reportText += '<span class="report-header">=== End of validation report ======================</span>';
   
-  // Display in textarea
-  reportTextArea.value = reportText;
+  // Display in element using innerHTML
+  reportTextArea.innerHTML = reportText;
   
-  // Scroll to top of textarea
+  // Scroll to top
   reportTextArea.scrollTop = 0;
 }
 
@@ -655,22 +675,24 @@ function processUserRegisterValues() {
   // Basic idea of this function:
   // 1. Parse user input from textarea into raw register array
   // 2. Process with the appropriate CAN IP Module function
-  //    This function fills the content of the objects: paramsHtml, resultsHtml, reg
+  //    This function fills the content of the reg object with calculations
+  // 3. Generate HTML objects from reg object
   // 4. Display data from params, results, reg in HTML fields and SVGs
 
-  const paramsHtml = {}; // Initialize params object
-  const resultsHtml = {}; // Initialize results object
+  const paramsHtml = {}; // Initialize params object for HTML display
+  const resultsHtml = {}; // Initialize results object for HTML display
   const reg = {}; // Initialize register object
 
-  // pre-process: global clock frequency from HTML input
-  // CAN Clock Frequency and Period: Calculate and Report
-  resultsHtml['res_clk_period']   = 1000/par_clk_freq_g; // 1000 / MHz = ns
-  reg.general= {};
+  // Setup general section with clock frequency
+  reg.general = {};
+  reg.general.clk_freq = par_clk_freq_g;
+  reg.general.clk_period = 1000/par_clk_freq_g; // 1000 / MHz = ns
   reg.general.report = []; // Initialize report array
+  
   // generate report for CAN Clock
   reg.general.report.push({
-      severityLevel: 0, // info
-      msg: `CAN Clock\n   Frequency = ${par_clk_freq_g} MHz\n   Period    = ${resultsHtml.res_clk_period} ns`
+      severityLevel: 4, // infoCalculated
+      msg: `CAN Clock\nFrequency = ${par_clk_freq_g} MHz\nPeriod    = ${reg.general.clk_period} ns`
   });
 
   // get the text area content
@@ -685,11 +707,19 @@ function processUserRegisterValues() {
     displayValidationReport(reg);
     return;
   }
-  
-  // TODO: umbauen, so dass IP-Modul wählbar: M_CAN, XS_CAN, X_CAN, etc.
-  x_can.processRegsOfX_CAN(reg, paramsHtml, resultsHtml, par_clk_freq_g);
+ 
+  // Step 2: Process with CAN IP Module (X_CAN) - operates solely on reg object
+  // Results are stored in reg.REGNAME.calc = {} without res_ prefix
+  x_can.processRegsOfX_CAN(reg);
+
+  // Step 3: Generate HTML objects from reg object (TODO: implement these functions)
+  // generateParamsHtml(reg, paramsHtml);
+  // generateResultsHtml(reg, resultsHtml);
 
   // Display in HTML =====================================
+  // assign parameters and results to paramsHtml and resultsHtml objects (so they can be displayed in HTML later)
+  assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml);
+
   // display parameters in HTML fields
   displayParameters(paramsHtml);
 
@@ -701,4 +731,118 @@ function processUserRegisterValues() {
 
   // Display: Validation Reports in HTML textarea
   displayValidationReport(reg);
+}
+
+// ===================================================================================
+// Assign HTML Parameters and Results from reg object
+function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
+  // Assign clock frequency parameter: Not assigned because not printed in HTML
+  // paramsHtml['par_clk_freq'] = reg.general.clk_freq;
+
+  if (reg.general && reg.general.bt_global && reg.general.bt_global.set) {
+    paramsHtml['par_tdc_dat'] = reg.general.bt_global.set.tdc;
+    paramsHtml['par_tms'] = reg.general.bt_global.set.tms;
+  } else {
+    // Default values if global settings are not set
+    paramsHtml['par_tdc_dat'] = false; // TDC disabled by default 
+    paramsHtml['par_tms'] = false; // TMS disabled by default
+  }
+
+  // Assign bit timing parameters from arbitration phase
+  if (reg.general.bt_arb && reg.general.bt_arb.set) {
+    paramsHtml['par_brp'] = reg.general.bt_arb.set.brp;
+    paramsHtml['par_prop_and_phaseseg1_arb'] = reg.general.bt_arb.set.prop_and_phaseseg1;
+    paramsHtml['par_phaseseg2_arb'] = reg.general.bt_arb.set.phaseseg2;
+    paramsHtml['par_sjw_arb'] = reg.general.bt_arb.set.sjw;
+  } else {
+    // Default values if arbitration phase is not set
+    paramsHtml['par_brp'] = 'miss'; // Not applicable
+    paramsHtml['par_prop_and_phaseseg1_arb'] = 'miss';
+    paramsHtml['par_phaseseg2_arb'] = 'miss';
+    paramsHtml['par_sjw_arb'] = 'miss';
+  }
+
+  // Assign bit timing parameters from XL data phase
+  if (reg.general.bt_xldata && reg.general.bt_xldata.set) {
+    paramsHtml['par_prop_and_phaseseg1_dat'] = reg.general.bt_xldata.set.prop_and_phaseseg1;
+    paramsHtml['par_phaseseg2_dat'] = reg.general.bt_xldata.set.phaseseg2;
+    paramsHtml['par_sjw_dat'] = reg.general.bt_xldata.set.sjw;
+    if (reg.general.bt_global.set.tms) {
+      // TMS enabled, assign default value
+      paramsHtml['par_sspoffset_dat'] = 'TMS on';
+    } else if (reg.general.bt_global.set.tdc) {
+      // TDC enabled, assign SSP offset
+      paramsHtml['par_sspoffset_dat'] = reg.general.bt_xldata.set.ssp_offset;
+    } else {
+      // TDC disabled, assign default value
+      paramsHtml['par_sspoffset_dat'] = 'TDC off';
+    }
+  } else {
+    // Default values if data phase is not set
+    paramsHtml['par_prop_and_phaseseg1_dat'] = 'miss';
+    paramsHtml['par_phaseseg2_dat'] = 'miss';
+    paramsHtml['par_sjw_dat'] = 'miss';
+    paramsHtml['par_sspoffset_dat'] = 'miss';
+  }
+
+  // Assign PWM parameters from XL data phase
+  if (reg.general.bt_xldata && reg.general.bt_xldata.set && reg.general.bt_global.set.tms) {
+    paramsHtml['par_pwmo'] = reg.general.bt_xldata.set.pwm_offset;
+    paramsHtml['par_pwms'] = reg.general.bt_xldata.set.pwm_short;
+    paramsHtml['par_pwml'] = reg.general.bt_xldata.set.pwm_long;
+  } else {
+    paramsHtml['par_pwmo'] = 'TMS off';
+    paramsHtml['par_pwms'] = 'TMS off';
+    paramsHtml['par_pwml'] = 'TMS off';
+  }
+
+  // Assign clock results
+  resultsHtml['res_clk_period'] = reg.general.clk_period;
+
+  // Assign bit timing results from arbitration phase
+  if (reg.general.bt_arb && reg.general.bt_arb.res) {
+    resultsHtml['res_bitrate_arb'] = reg.general.bt_arb.res.bitrate;
+    resultsHtml['res_sp_arb'] = reg.general.bt_arb.res.sp;
+    resultsHtml['res_tqperbit_arb'] = reg.general.bt_arb.res.tq_per_bit;
+    resultsHtml['res_bitlength_arb'] = reg.general.bt_arb.res.bit_length;
+    resultsHtml['res_tqlen'] = reg.general.bt_arb.res.tq_len;
+  } else {
+    // Default values if arbitration phase is not set
+    resultsHtml['res_bitrate_arb'] = 'miss';
+    resultsHtml['res_sp_arb'] = 'miss';
+    resultsHtml['res_tqperbit_arb'] = 'miss';
+    resultsHtml['res_bitlength_arb'] = 'miss';
+    resultsHtml['res_tqlen'] = 'miss';
+  } 
+
+  // Assign bit timing results from XL data phase
+  if (reg.general.bt_xldata && reg.general.bt_xldata.res) {
+    resultsHtml['res_bitrate_dat'] = reg.general.bt_xldata.res.bitrate;
+    resultsHtml['res_sp_dat'] = reg.general.bt_xldata.res.sp;
+    resultsHtml['res_ssp_dat'] = reg.general.bt_xldata.res.ssp;
+    resultsHtml['res_tqperbit_dat'] = reg.general.bt_xldata.res.tq_per_bit;
+    resultsHtml['res_bitlength_dat'] = reg.general.bt_xldata.res.bit_length;
+  } else {
+    // Default values if data phase is not set
+    resultsHtml['res_bitrate_dat'] = 'miss';
+    resultsHtml['res_sp_dat'] = 'miss';
+    resultsHtml['res_ssp_dat'] = 'miss';
+    resultsHtml['res_tqperbit_dat'] = 'miss';
+    resultsHtml['res_bitlength_dat'] = 'miss';
+  } 
+
+  // Assign PWM results from XL data phase
+  if (reg.general.bt_xldata && reg.general.bt_xldata.res && reg.general.bt_global.set.tms) {
+    resultsHtml['res_pwm_symbol_len_ns'] = reg.general.bt_xldata.res.pwm_symbol_len_ns;
+    resultsHtml['res_pwm_symbol_len_clk_cycles'] = reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles;
+    resultsHtml['res_pwm_symbols_per_bit_time'] = reg.general.bt_xldata.res.pwm_symbols_per_bit_time;
+  } else {
+    // Default values if PWM is not set
+    resultsHtml['res_pwm_symbol_len_ns'] = 'TMS off';
+    resultsHtml['res_pwm_symbol_len_clk_cycles'] = 'TMS off';
+    resultsHtml['res_pwm_symbols_per_bit_time'] = 'TMS off';
+  }
+
+  console.log('[Info] assignHtmlParamsAndResults(): Assigned parameters:', paramsHtml);
+  console.log('[Info] assignHtmlParamsAndResults(): Assigned results:', resultsHtml);
 }

@@ -268,6 +268,37 @@ svg {
     height: 500px; /* Larger height for validation report */
     flex: 1; /* Fill remaining vertical space in column */
     min-height: 400px; /* Minimum height for readability */
+    resize: vertical; /* Allow vertical resizing */
+}
+
+/* Color classes for validation report severity levels */
+.report-error {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.report-warning {
+    color: #a04800;
+    font-weight: bold;
+}
+
+.report-recommendation {
+    color: #6f42c1;
+    font-weight: bold;
+}
+
+.report-info {
+    color: #000000;
+}
+
+.report-infoCalculated {
+    color: #0077ff;
+    font-weight: bold;
+}
+
+.report-header {
+    color: #495057;
+    font-weight: bold;
 }
 
 /* Keep headers at fixed size, don't let them grow */
