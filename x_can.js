@@ -4,8 +4,6 @@ import { getBits } from './func_get_bits.js';
 // ===================================================================================
 // X_CAN: Process User Register Values: parse, validate, calculate results, generate report
 export function processRegsOfX_CAN(reg) {
-  // TODO: make this X_CAN related function clean
-
   // Map raw addresses to register names
   mapRawRegistersToNames(reg);
   console.log('[Info] Step 2 - Mapped register values (reg object):', reg);
@@ -13,26 +11,6 @@ export function processRegsOfX_CAN(reg) {
   // c1) Process Bit Timing registers
   procRegsBitTiming(reg);
   console.log('[Info] Registers with data and reports, reg object:', reg);
-
-//  // c) Generate params object from register values
-//  decodeParamsFromUserRegisterValuesXS_CAN(registerValues, paramsFromRegs);
-//  console.log('[Info] Decoded parameters:', paramsFromRegs);
-
-//  // Generate validation report for bits/fields in registers
-//  const registerFieldsDecodeReport = generateRegisterFieldReport(paramsFromRegs);
-
-//  // d) Validate parameter ranges
-//  const paramRangeValidationReport = paramsFromRegsXLBitTimeRangeValidate(paramsFromRegs);
-//  console.log('[Info] Validated (Range) parameters:');
-
-//  // e) Calculate results from decoded parameters
-//  const results = calculateResultsFromUserRegisterValues(paramsFromRegs);
-//  console.log('[Info] Calculated results:', results);
-  
-//  // f) Check consistency
-//  //    e.g. if parameter combinanation is meaningful, e.g. TDC at > 1 Mbit/s, etc.
-//  const consistencyValidation = checkConsistencyOfUserRegisterValues(paramsFromRegs, results, registerValues);
-//  console.log('[Info] Checked Consistency of User Register Values');
 }
 
 // ===================================================================================
@@ -161,7 +139,7 @@ export function procRegsBitTiming(reg) {
     // 3. Generate human-readable register report
     reg.MODE.report.push({
         severityLevel: 0, // info
-        msg: `MODE: ${reg.MODE.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[TSSE] Transceiver Sharing Switch Enable = ${reg.MODE.fields.TSSE}\n[LCHB] FD Light Commander High Bit Rate Mode Enable = ${reg.MODE.fields.LCHB}\n[FIME] Fault Injection Module Enable = ${reg.MODE.fields.FIME}\n[EFDI] Error Flag/Frame Disable = ${reg.MODE.fields.EFDI}\n[XLTR] Transceiver Mode Switching (TMS) Enable = ${reg.MODE.fields.XLTR}\n[SFS ] Time Stamp Position: Start of Frame (1), End of Frame (0) = ${reg.MODE.fields.SFS}\n[RSTR] Restricted Mode Enable = ${reg.MODE.fields.RSTR}\n[MON ] (Bus) Monitoring Mode Enable = ${reg.MODE.fields.MON}\n[TXP ] TX Pause = ${reg.MODE.fields.TXP}\n[EFBI] Edge Filtering during Bus Integration = ${reg.MODE.fields.EFBI}\n[PXHD] Protocol Exception Handling Disable = ${reg.MODE.fields.PXHD}\n[TDCE] TDC: Transmitter Delay Compensation Enable = ${reg.MODE.fields.TDCE}\n[XLOE] XL Operation Enable = ${reg.MODE.fields.XLOE}\n[FDOE] FD Operation Enable = ${reg.MODE.fields.FDOE}`
+        msg: `MODE: ${reg.MODE.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[TSSE] Transceiver Sharing Switch Enable = ${reg.MODE.fields.TSSE}\n[LCHB] FD Light Commander High Bit Rate Mode Enable = ${reg.MODE.fields.LCHB}\n[FIME] Fault Injection Module Enable = ${reg.MODE.fields.FIME}\n[EFDI] Error Flag/Frame Disable = ${reg.MODE.fields.EFDI}\n[XLTR] Transceiver Mode Switching (TMS) Enable = ${reg.MODE.fields.XLTR}\n[SFS ] Time Stamp Position: Start of Frame (1), End of Frame (0) = ${reg.MODE.fields.SFS}\n[RSTR] Restricted Mode Enable = ${reg.MODE.fields.RSTR}\n[MON ] (Bus) Monitoring Mode Enable = ${reg.MODE.fields.MON}\n[TXP ] TX Pause = ${reg.MODE.fields.TXP}\n[EFBI] Edge Filtering during Bus Integration = ${reg.MODE.fields.EFBI}\n[PXHD] Protocol Exception Handling Disable = ${reg.MODE.fields.PXHD}\n[TDCE] Transmitter Delay Compensation (TDC) Enable = ${reg.MODE.fields.TDCE}\n[XLOE] XL Operation Enable = ${reg.MODE.fields.XLOE}\n[FDOE] FD Operation Enable = ${reg.MODE.fields.FDOE}`
     });
   }
 
@@ -188,7 +166,7 @@ export function procRegsBitTiming(reg) {
     // 3. Generate human-readable register report
     reg.NBTP.report.push({
         severityLevel: 0, // info
-        msg: `NBTP: ${reg.NBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[BRP   ] Bit Rate Prescaler = ${reg.NBTP.fields.BRP}\n[NTSEG1] Nominal Time Segment 1 = ${reg.NBTP.fields.NTSEG1}\n[NTSEG2] Nominal Time Segment 2 = ${reg.NBTP.fields.NTSEG2}\n[NSJW  ] Nominal Synchronization Jump Width = ${reg.NBTP.fields.NSJW}`
+        msg: `NBTP: ${reg.NBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[BRP   ] Bit Rate Prescaler     = ${reg.NBTP.fields.BRP}\n[NTSEG1] Nominal Time Segment 1 = ${reg.NBTP.fields.NTSEG1}\n[NTSEG2] Nominal Time Segment 2 = ${reg.NBTP.fields.NTSEG2}\n[NSJW  ] Nominal Synchronization Jump Width = ${reg.NBTP.fields.NSJW}`
     });
 
     // 4. Calculate arbitration phase results and store in general structure
@@ -204,9 +182,38 @@ export function procRegsBitTiming(reg) {
         msg: `Nominal Bitrate (Arbitration Phase)\nBitrate    = ${reg.general.bt_arb.res.bitrate} Mbit/s\nBit Length = ${reg.general.bt_arb.res.bit_length} ns\nTQ per Bit = ${reg.general.bt_arb.res.tq_per_bit}\nSP         = ${reg.general.bt_arb.res.sp} %`
     });
 
-    // TODO: check for SJW <= min(PhaseSeg1, PhaseSeg2)
-    // TODO: check for phase segment length >= 2
-  }
+    // Check: check for SJW <= min(PhaseSeg1, PhaseSeg2)?
+    if (reg.general.bt_arb.set.sjw > reg.general.bt_arb.set.phaseseg2) {
+      reg.NBTP.report.push({
+        severityLevel: 3, // error
+        msg: `NBTP: SJW (${reg.general.bt_arb.set.sjw}) > PhaseSeg2 (${reg.general.bt_arb.set.phaseseg2}). ISO 11898-1 requires SJW <= PhaseSeg2.`
+      });
+    }
+
+    // Check: check for PhaseSeg2 >= 2
+    if (reg.general.bt_arb.set.phaseseg2 < 2) {
+      reg.NBTP.report.push({
+        severityLevel: 3, // error
+        msg: `NBTP: PhaseSeg2 (${reg.general.bt_arb.set.phaseseg2}) < 2. ISO 11898-1 requires a value >= 2.`
+      });
+    }
+
+    // Check: SJW choosen as large as possible?
+    if (reg.general.bt_arb.set.sjw < reg.general.bt_arb.set.phaseseg2) {
+      reg.NBTP.report.push({
+        severityLevel: 2, // warning
+        msg: `NBTP: SJW (${reg.general.bt_arb.set.sjw}) < PhaseSeg2 (${reg.general.bt_arb.set.phaseseg2}). It is recommended to use SJW=PhaseSeg2.`
+      });
+    }
+
+    // Check: Number of TQ large enough?
+    if (reg.general.bt_arb.res.tq_per_bit < 8) {
+      reg.NBTP.report.push({
+        severityLevel: 2, // warning
+        msg: `NBTP: Number of TQ/Bit is small. If possible, increase the TQ/Bit by reducing BRP or increasing the CAN Clock Freq.`
+      });
+    }
+  } // end if NBTP
 
   // === DBTP: Extract parameters from register ==========================
   if ('DBTP' in reg && reg.DBTP.int32 !== undefined) {
@@ -240,7 +247,7 @@ export function procRegsBitTiming(reg) {
       // 3. Generate human-readable register report
       reg.DBTP.report.push({
           severityLevel: 0, // info
-          msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[DTDCO ] CAN FD Transmitter Delay Compensation Offset = ${reg.DBTP.fields.DTDCO}\n[DTSEG1] CAN FD Data Time Segment 1 = ${reg.DBTP.fields.DTSEG1}\n[DTSEG2] CAN FD Data Time Segment 2 = ${reg.DBTP.fields.DTSEG2}\n[DSJW  ] CAN FD Data Synchronization Jump Width = ${reg.DBTP.fields.DSJW}`
+          msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[DTDCO ] FD TDC Offset     = ${reg.DBTP.fields.DTDCO}\n[DTSEG1] FD Time Segment 1 = ${reg.DBTP.fields.DTSEG1}\n[DTSEG2] FD Time Segment 2 = ${reg.DBTP.fields.DTSEG2}\n[DSJW  ] FD Synchronization Jump Width = ${reg.DBTP.fields.DSJW}`
       });
 
       // 4. Calculate FD data phase results and store in general structure
@@ -262,14 +269,43 @@ export function procRegsBitTiming(reg) {
           msg: `CAN FD Data Phase Bitrate\nBitrate    = ${reg.general.bt_fddata.res.bitrate} Mbit/s\nBit Length = ${reg.general.bt_fddata.res.bit_length} ns\nTQ per Bit = ${reg.general.bt_fddata.res.tq_per_bit}\nSP         = ${reg.general.bt_fddata.res.sp} %\nSSP        = ${reg.general.bt_fddata.res.ssp} %`
       });
 
-      // TODO: check for SJW <= min(PhaseSeg1, PhaseSeg2)
-      // TODO: check for phase segment length >= 2
-
-      // Minimum number of TQ/Bit?
-      if (reg.general.bt_fddata.res.tq_per_bit < 5) {
+      // Check: CAN Clock Frequency as recommended in CiA 601-3?
+      if ((reg.general.clk_freq != 160) && (reg.general.clk_freq != 80) && (reg.general.clk_freq != 40) && (reg.general.clk_freq != 20)) {
         reg.DBTP.report.push({
           severityLevel: 2, // warning
-          msg: `Recommended minimum TQ per FD Data Bit is 5. Current number of TQ per FD Data bit = ${reg.general.bt_fddata.res.tq_per_bit}.`
+          msg: `CAN FD: Recommended CAN Clock Frequency is 20, 40, 80 MHz etc. (see CiA 601-3). Current value is ${reg.general.clk_freq} MHz.`
+        });
+      }
+
+      // Check: check for SJW <= min(PhaseSeg1, PhaseSeg2)?
+      if (reg.general.bt_fddata.set.sjw > reg.general.bt_fddata.set.phaseseg2) {
+        reg.DBTP.report.push({
+          severityLevel: 3, // error
+          msg: `DBTP: SJW (${reg.general.bt_fddata.set.sjw}) > PhaseSeg2 (${reg.general.bt_fddata.set.phaseseg2}). ISO 11898-1 requires SJW <= PhaseSeg2.`
+        });
+      }
+
+      // Check: check for PhaseSeg2 >= 2
+      if (reg.general.bt_fddata.set.phaseseg2 < 2) {
+        reg.DBTP.report.push({
+          severityLevel: 3, // error
+          msg: `DBTP: PhaseSeg2 (${reg.general.bt_fddata.set.phaseseg2}) < 2. ISO 11898-1 requires a value >= 2.`
+        });
+      }
+
+      // Check: SJW choosen as large as possible?
+      if (reg.general.bt_fddata.set.sjw < reg.general.bt_fddata.set.phaseseg2) {
+        reg.DBTP.report.push({
+          severityLevel: 2, // warning
+          msg: `DBTP: SJW (${reg.general.bt_fddata.set.sjw}) < PhaseSeg2 (${reg.general.bt_fddata.set.phaseseg2}). It is recommended to use SJW=PhaseSeg2.`
+        });
+      }
+
+      // Check: Number of TQ large enough?
+      if (reg.general.bt_fddata.res.tq_per_bit < 8) {
+        reg.DBTP.report.push({
+          severityLevel: 2, // warning
+          msg: `DBTP: Number of TQ/Bit is small. If possible, increase the TQ/Bit by reducing BRP or increasing the CAN Clock Freq.`
         });
       }
     } // end if FDOE
@@ -308,7 +344,7 @@ export function procRegsBitTiming(reg) {
       // 3. Generate human-readable register report
       reg.XBTP.report.push({
           severityLevel: 0, // info
-          msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[XTDCO ] XL Transmitter Delay Compensation Offset = ${reg.XBTP.fields.XTDCO}\n[XTSEG1] XL Time Segment 1 = ${reg.XBTP.fields.XTSEG1}\n[XTSEG2] XL Time Segment 2 = ${reg.XBTP.fields.XTSEG2}\n[XSJW  ] XL Synchronization Jump Width = ${reg.XBTP.fields.XSJW}`
+          msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[XTDCO ] XL TDC Offset     = ${reg.XBTP.fields.XTDCO}\n[XTSEG1] XL Time Segment 1 = ${reg.XBTP.fields.XTSEG1}\n[XTSEG2] XL Time Segment 2 = ${reg.XBTP.fields.XTSEG2}\n[XSJW  ] XL Synchronization Jump Width = ${reg.XBTP.fields.XSJW}`
       });
 
       // 4. Calculate XL data phase results and store in general structure
@@ -330,22 +366,43 @@ export function procRegsBitTiming(reg) {
           msg: `XL Data Phase Bitrate\nBitrate    = ${reg.general.bt_xldata.res.bitrate} Mbit/s\nBit Length = ${reg.general.bt_xldata.res.bit_length} ns\nTQ per Bit = ${reg.general.bt_xldata.res.tq_per_bit}\nSP         = ${reg.general.bt_xldata.res.sp} %\nSSP        = ${reg.general.bt_xldata.res.ssp} %`
       });
 
-      // TODO: check for SJW <= min(PhaseSeg1, PhaseSeg2)
-      // TODO: check for phase segment length >= 2
-
-      // CAN Clock Frequency as recommended in CiA 612-1?
+      // Check: CAN Clock Frequency as recommended in CiA 612-1?
       if ((reg.general.clk_freq != 160) && (reg.general.clk_freq != 80)) {
         reg.XBTP.report.push({
           severityLevel: 2, // warning
-          msg: `Recommended CAN Clock Frequency for CAN XL is 80 MHz or 160 MHz. Current value is ${reg.general.clk_freq} MHz.`
+          msg: `CAN XL: Recommended CAN Clock Frequency is 80 MHz or 160 MHz. Current value is ${reg.general.clk_freq} MHz.`
         });
       }
 
-      // Minimum number of TQ/Bit?
-      if (reg.general.bt_xldata.res.tq_per_bit < 8) {
+      // Check: check for SJW <= min(PhaseSeg1, PhaseSeg2)?
+      if (reg.general.bt_xldata.set.sjw > reg.general.bt_xldata.set.phaseseg2) {
+        reg.XBTP.report.push({
+          severityLevel: 3, // error
+          msg: `XBTP: SJW (${reg.general.bt_xldata.set.sjw}) > PhaseSeg2 (${reg.general.bt_xldata.set.phaseseg2}). ISO 11898-1 requires SJW <= PhaseSeg2.`
+        });
+      }
+
+      // Check: check for PhaseSeg2 >= 2
+      if (reg.general.bt_xldata.set.phaseseg2 < 2) {
+        reg.XBTP.report.push({
+          severityLevel: 3, // error
+          msg: `XBTP: PhaseSeg2 (${reg.general.bt_xldata.set.phaseseg2}) < 2. ISO 11898-1 requires a value >= 2.`
+        });
+      }
+
+      // Check: SJW choosen as large as possible?
+      if (reg.general.bt_xldata.set.sjw < reg.general.bt_xldata.set.phaseseg2) {
         reg.XBTP.report.push({
           severityLevel: 2, // warning
-          msg: `Recommended minimum TQ per XL Data Bit is 8. Current number of TQ per XL Data bit = ${reg.general.bt_xldata.res.tq_per_bit}.`
+          msg: `XBTP: SJW (${reg.general.bt_xldata.set.sjw}) < PhaseSeg2 (${reg.general.bt_xldata.set.phaseseg2}). It is recommended to use SJW=PhaseSeg2.`
+        });
+      }
+
+      // Check: Number of TQ large enough?
+      if (reg.general.bt_fddata.res.tq_per_bit < 8) {
+        reg.DBTP.report.push({
+          severityLevel: 2, // warning
+          msg: `XBTP: Number of TQ/Bit is small. If possible, increase the TQ/Bit by reducing BRP or increasing the CAN Clock Freq.`
         });
       }
 
@@ -359,7 +416,6 @@ export function procRegsBitTiming(reg) {
         }
       } // end if EFDI
     } // end if XLOE
-    
   } // end if XBTP
   
   // === PCFG: Extract parameters from register (if TMS is enabled) ==============
@@ -392,7 +448,7 @@ export function procRegsBitTiming(reg) {
       // 3. Generate human-readable register report
       reg.PCFG.report.push({
           severityLevel: 0, // info
-          msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[PWMO] PWM Offset = ${reg.PCFG.fields.PWMO}\n[PWML] PWM phase Long = ${reg.PCFG.fields.PWML}\n[PWMS] PWM phase Short = ${reg.PCFG.fields.PWMS}`
+          msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[PWMO] PWM Offset      = ${reg.PCFG.fields.PWMO}\n[PWML] PWM phase Long  = ${reg.PCFG.fields.PWML}\n[PWMS] PWM phase Short = ${reg.PCFG.fields.PWMS}`
       });
 
       // 4. Calculate PWM results and store in XL data structure
