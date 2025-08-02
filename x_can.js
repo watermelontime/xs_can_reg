@@ -81,7 +81,7 @@ function mapRawRegistersToNames(reg) {
       
       reg.parse_output.report.push({
         severityLevel: 0, // info
-        msg: `Mapped address 0x${rawReg.addr.toString(16).toUpperCase().padStart(2, '0')} to register ${regName} (${mapping.longName})`
+        msg: `Mapped reg. address 0x${rawReg.addr.toString(16).toUpperCase().padStart(2, '0')} to ${regName} (${mapping.longName})`
       });
     } else {
       // Unknown address
@@ -112,20 +112,27 @@ export function procRegsBitTiming(reg) {
   if (!reg.general.bt_global) {
     reg.general.bt_global = { set: {}, res: {} };
   }
+  // Initialize bit timing structure in reg.general
   if (!reg.general.bt_arb) {
     reg.general.bt_arb = { set: {}, res: {} };
   }
+  // Initialize bit timing structure in reg.general
   if (!reg.general.bt_fddata) {
     reg.general.bt_fddata = { set: {}, res: {} };
   }
+  // Initialize bit timing structure in reg.general
   if (!reg.general.bt_xldata) {
     reg.general.bt_xldata = { set: {}, res: {} };
   }
 
+  // Rule: only assign reg.general.* values if they get meaningful values
+  //       leave values undefined, if a) according registers are not present
+  //                                  b) configuration disables a feature (e.g. TMS=OFF => then do not provide PWM settings & results)
+
   // === MODE: Extract parameters from register ==========================
   if ('MODE' in reg && reg.MODE.int32 !== undefined) {
     const regValue = reg.MODE.int32;
-    
+
     // 0. Extend existing register structure
     reg.MODE.fields = {};
     reg.MODE.report = []; // Initialize report array
@@ -154,7 +161,7 @@ export function procRegsBitTiming(reg) {
     // 3. Generate human-readable register report
     reg.MODE.report.push({
         severityLevel: 0, // info
-        msg: `MODE: ${reg.MODE.name_long}\n[TSSE] Transceiver Sharing Switch Enable = ${reg.MODE.fields.TSSE}\n[LCHB] FD Light Commander High Bit Rate Mode Enable = ${reg.MODE.fields.LCHB}\n[FIME] Fault Injection Module Enable = ${reg.MODE.fields.FIME}\n[EFDI] Error Flag/Frame Disable = ${reg.MODE.fields.EFDI}\n[XLTR] TMS Enable (XL Transceiver present) = ${reg.MODE.fields.XLTR}\n[SFS] Time Stamp Position: Start of Frame (1), End of Frame (0) = ${reg.MODE.fields.SFS}\n[RSTR] Restricted Mode Enable = ${reg.MODE.fields.RSTR}\n[MON] (Bus) Monitoring Mode Enable = ${reg.MODE.fields.MON}\n[TXP] TX Pause = ${reg.MODE.fields.TXP}\n[EFBI] Edge Filtering during Bus Integration = ${reg.MODE.fields.EFBI}\n[PXHD] Protocol Exception Handling Disable = ${reg.MODE.fields.PXHD}\n[TDCE] TDC: Transmitter Delay Compensation Enable = ${reg.MODE.fields.TDCE}\n[XLOE] XL Operation Enable = ${reg.MODE.fields.XLOE}\n[FDOE] FD Operation Enable = ${reg.MODE.fields.FDOE}`
+        msg: `MODE: ${reg.MODE.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[TSSE] Transceiver Sharing Switch Enable = ${reg.MODE.fields.TSSE}\n[LCHB] FD Light Commander High Bit Rate Mode Enable = ${reg.MODE.fields.LCHB}\n[FIME] Fault Injection Module Enable = ${reg.MODE.fields.FIME}\n[EFDI] Error Flag/Frame Disable = ${reg.MODE.fields.EFDI}\n[XLTR] Transceiver Mode Switching (TMS) Enable = ${reg.MODE.fields.XLTR}\n[SFS ] Time Stamp Position: Start of Frame (1), End of Frame (0) = ${reg.MODE.fields.SFS}\n[RSTR] Restricted Mode Enable = ${reg.MODE.fields.RSTR}\n[MON ] (Bus) Monitoring Mode Enable = ${reg.MODE.fields.MON}\n[TXP ] TX Pause = ${reg.MODE.fields.TXP}\n[EFBI] Edge Filtering during Bus Integration = ${reg.MODE.fields.EFBI}\n[PXHD] Protocol Exception Handling Disable = ${reg.MODE.fields.PXHD}\n[TDCE] TDC: Transmitter Delay Compensation Enable = ${reg.MODE.fields.TDCE}\n[XLOE] XL Operation Enable = ${reg.MODE.fields.XLOE}\n[FDOE] FD Operation Enable = ${reg.MODE.fields.FDOE}`
     });
   }
 
@@ -181,7 +188,7 @@ export function procRegsBitTiming(reg) {
     // 3. Generate human-readable register report
     reg.NBTP.report.push({
         severityLevel: 0, // info
-        msg: `NBTP: ${reg.NBTP.name_long}\n[BRP] Bit Rate Prescaler = ${reg.NBTP.fields.BRP}\n[NTSEG1] Nominal Time Segment 1 = ${reg.NBTP.fields.NTSEG1}\n[NTSEG2] Nominal Time Segment 2 = ${reg.NBTP.fields.NTSEG2}\n[NSJW] Nominal Synchronization Jump Width = ${reg.NBTP.fields.NSJW}`
+        msg: `NBTP: ${reg.NBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[BRP   ] Bit Rate Prescaler = ${reg.NBTP.fields.BRP}\n[NTSEG1] Nominal Time Segment 1 = ${reg.NBTP.fields.NTSEG1}\n[NTSEG2] Nominal Time Segment 2 = ${reg.NBTP.fields.NTSEG2}\n[NSJW  ] Nominal Synchronization Jump Width = ${reg.NBTP.fields.NSJW}`
     });
 
     // 4. Calculate arbitration phase results and store in general structure
@@ -222,25 +229,18 @@ export function procRegsBitTiming(reg) {
     reg.general.bt_fddata.set.sjw = reg.DBTP.fields.DSJW;
 
     // different output based on FDOE
-    if (reg.MODE.fields.FDOE == 0) {
+    if (!reg.MODE || !reg.MODE.fields || reg.MODE.fields.FDOE == 0) {
       // 3. Generate human-readable register report
       reg.DBTP.report.push({
         severityLevel: 2, // warning
-        msg: `DBTP: ${reg.DBTP.name_long}\nFD Operation is disabled (MODE.FDOE=0)`
+        msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\nFD Operation is disabled (MODE.FDOE=0) OR MODE register not present`
       });
 
-      // 4. Set FD data phase results to OFF
-      reg.general.bt_fddata.res.tq_per_bit = 'OFF';
-      reg.general.bt_fddata.res.bitrate = 'OFF';
-      reg.general.bt_fddata.res.bit_length = 'OFF';
-      reg.general.bt_fddata.res.sp = 'OFF';
-      reg.general.bt_fddata.res.ssp = 'OFF';
-
-    } else { // MODE.FDOE == 1
+    } else { // MODE.FDOE == 1 OR MODE register not present
       // 3. Generate human-readable register report
       reg.DBTP.report.push({
           severityLevel: 0, // info
-          msg: `DBTP: ${reg.DBTP.name_long}\n[DTDCO] CAN FD Transmitter Delay Compensation Offset = ${reg.DBTP.fields.DTDCO}\n[DTSEG1] CAN FD Data Time Segment 1 = ${reg.DBTP.fields.DTSEG1}\n[DTSEG2] CAN FD Data Time Segment 2 = ${reg.DBTP.fields.DTSEG2}\n[DSJW] CAN FD Data Synchronization Jump Width = ${reg.DBTP.fields.DSJW}`
+          msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[DTDCO ] CAN FD Transmitter Delay Compensation Offset = ${reg.DBTP.fields.DTDCO}\n[DTSEG1] CAN FD Data Time Segment 1 = ${reg.DBTP.fields.DTSEG1}\n[DTSEG2] CAN FD Data Time Segment 2 = ${reg.DBTP.fields.DTSEG2}\n[DSJW  ] CAN FD Data Synchronization Jump Width = ${reg.DBTP.fields.DSJW}`
       });
 
       // 4. Calculate FD data phase results and store in general structure
@@ -272,16 +272,6 @@ export function procRegsBitTiming(reg) {
           msg: `Recommended minimum TQ per FD Data Bit is 5. Current number of TQ per FD Data bit = ${reg.general.bt_fddata.res.tq_per_bit}.`
         });
       }
-
-      // Ratio of Arb. Bit Time / FD Data Bit Time >= 2 ?
-      if (reg.MODE.fields.EFDI == 0) { // Error Signaling is enabled
-        if (reg.general.bt_arb.res.tq_per_bit < (2 * reg.general.bt_fddata.res.tq_per_bit)) {
-          reg.DBTP.report.push({
-            severityLevel: 3, // error
-            msg: `Minimum Ratio of [FD Data Bitrate / Nominal Bitrate] = ${reg.general.bt_arb.res.tq_per_bit / reg.general.bt_fddata.res.tq_per_bit}. Minimum ratio is 2, when Error Signaling is enabled (MODE.ESDI=0).`
-          });
-        }
-      } // end if EFDI
     } // end if FDOE
     
   } // end if DBTP
@@ -307,25 +297,18 @@ export function procRegsBitTiming(reg) {
     reg.general.bt_xldata.set.sjw = reg.XBTP.fields.XSJW;
 
     // different output based on XLOE
-    if (reg.MODE.fields.XLOE == 0) {
+    if (!reg.MODE || !reg.MODE.fields || reg.MODE.fields.XLOE == 0) {
       // 3. Generate human-readable register report
       reg.XBTP.report.push({
         severityLevel: 2, // warning
-        msg: `XBTP: ${reg.XBTP.name_long}\nXL Operation is disabled (MODE.XLOE=0)`
+        msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\nXL Operation is disabled (MODE.XLOE=0) OR MODE register not present`
       });
-
-      // 4. Set XL data phase results to OFF
-      reg.general.bt_xldata.res.tq_per_bit = 'OFF';
-      reg.general.bt_xldata.res.bitrate = 'OFF';
-      reg.general.bt_xldata.res.bit_length = 'OFF';
-      reg.general.bt_xldata.res.sp = 'OFF';
-      reg.general.bt_xldata.res.ssp = 'OFF';
 
     } else { // MODE.XLOE == 1
       // 3. Generate human-readable register report
       reg.XBTP.report.push({
           severityLevel: 0, // info
-          msg: `XBTP: ${reg.XBTP.name_long}\n[XTDCO] XL Transmitter Delay Compensation Offset = ${reg.XBTP.fields.XTDCO}\n[XTSEG1] XL Time Segment 1 = ${reg.XBTP.fields.XTSEG1}\n[XTSEG2] XL Time Segment 2 = ${reg.XBTP.fields.XTSEG2}\n[XSJW] XL Synchronization Jump Width = ${reg.XBTP.fields.XSJW}`
+          msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[XTDCO ] XL Transmitter Delay Compensation Offset = ${reg.XBTP.fields.XTDCO}\n[XTSEG1] XL Time Segment 1 = ${reg.XBTP.fields.XTSEG1}\n[XTSEG2] XL Time Segment 2 = ${reg.XBTP.fields.XTSEG2}\n[XSJW  ] XL Synchronization Jump Width = ${reg.XBTP.fields.XSJW}`
       });
 
       // 4. Calculate XL data phase results and store in general structure
@@ -367,7 +350,7 @@ export function procRegsBitTiming(reg) {
       }
 
       // Ratio of Arb. Bit Time / XL Data Bit Time >= 2 ?
-      if (reg.MODE.fields.EFDI == 0) { // Error Signaling is enabled
+      if (!reg.MODE || !reg.MODE.fields || reg.MODE.fields.EFDI == 0) { // Error Signaling is enabled
         if (reg.general.bt_arb.res.tq_per_bit < (2 * reg.general.bt_xldata.res.tq_per_bit)) {
           reg.XBTP.report.push({
             severityLevel: 3, // error
@@ -389,7 +372,7 @@ export function procRegsBitTiming(reg) {
 
     // 1. Decode all individual bits of PCFG register
     reg.PCFG.fields.PWMO = getBits(regValue, 21, 16);     // PWM Offset
-    reg.PCFG.fields.PWML = getBits(regValue, 13, 8) + 1;  // PWM Low
+    reg.PCFG.fields.PWML = getBits(regValue, 13, 8) + 1;  // PWM Long
     reg.PCFG.fields.PWMS = getBits(regValue, 5, 0) + 1;   // PWM Short
 
     // 2. Store PWM settings in XL data structure
@@ -398,23 +381,18 @@ export function procRegsBitTiming(reg) {
     reg.general.bt_xldata.set.pwm_short = reg.PCFG.fields.PWMS;
 
     // different output based on XLOE & TMS
-    if ((reg.MODE.fields.XLOE == 0) || (reg.MODE.fields.XLTR == 0)) {
+    if (!reg.MODE || !reg.MODE.fields || (reg.MODE.fields.XLOE !== undefined && reg.MODE.fields.XLOE == 0) || (reg.MODE.fields.XLTR !== undefined && reg.MODE.fields.XLTR == 0) || !reg.XBTP) {
       // 3. Generate human-readable register report
       reg.PCFG.report.push({
-        severityLevel: 2, // warning
-        msg: `PCFG: ${reg.PCFG.name_long}\nXL Operation (MODE.XLOE=0) OR Transceiver Mode Switch (MODE.XLTR=0) is disabled`
+        severityLevel: 0, // info
+        msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\nXL Operation (MODE.XLOE=0) OR Transceiver Mode Switch (MODE.XLTR=0) is disabled OR MODE register not present`
       });
-
-      // 4. Set PWM results to OFF
-      reg.general.bt_xldata.res.pwm_symbol_len_ns = 'OFF';
-      reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles = 'OFF';   
-      reg.general.bt_xldata.res.pwm_symbols_per_bit_time = 'OFF';
 
     } else { // MODE.XLTR == 1 && MODE.XLOE == 1
       // 3. Generate human-readable register report
       reg.PCFG.report.push({
           severityLevel: 0, // info
-          msg: `PCFG: ${reg.PCFG.name_long}\n[PWMO] PWM Offset = ${reg.PCFG.fields.PWMO}\n[PWML] PWM phase Long = ${reg.PCFG.fields.PWML}\n[PWMS] PWM phase Short = ${reg.PCFG.fields.PWMS}`
+          msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[PWMO] PWM Offset = ${reg.PCFG.fields.PWMO}\n[PWML] PWM phase Long = ${reg.PCFG.fields.PWML}\n[PWMS] PWM phase Short = ${reg.PCFG.fields.PWMS}`
       });
 
       // 4. Calculate PWM results and store in XL data structure
@@ -425,14 +403,14 @@ export function procRegsBitTiming(reg) {
       // 5. Generate Report about settings
       reg.PCFG.report.push({
           severityLevel: 4, // infoCalculated
-          msg: `PWM Configuration\nPWM Symbol Length = ${reg.general.bt_xldata.res.pwm_symbol_len_ns} ns = ${reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles} clock cycles\nPWM Symbols per XL Data Bit Time = ${reg.general.bt_xldata.res.pwm_symbols_per_bit_time}`
+          msg: `PWM Configuration\nPWM Symbol Length = ${reg.general.bt_xldata.res.pwm_symbol_len_ns} ns = ${reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles} clock cycles\nPWM Symbols per XL Data Bit Time = ${reg.general.bt_xldata.res.pwm_symbols_per_bit_time.toFixed(2)}`
       });
 
       // Ratio of XL Data Bit Time to PWM Symbol Length
       if (!Number.isInteger(reg.general.bt_xldata.res.pwm_symbols_per_bit_time)) {
         reg.PCFG.report.push({
           severityLevel: 3, // error
-          msg: `PWM Symbols per XL Data Bit Time (${reg.general.bt_xldata.res.pwm_symbols_per_bit_time.toFixed(2)}) is not an integer. Wrong PWM configuration.`
+          msg: `Length of XL Data Bit Time is not an integer multiple of PWM Symbol Length. tBit/tPWM=${reg.general.bt_xldata.res.pwm_symbols_per_bit_time.toFixed(2)}`
         });
       }
 

@@ -318,3 +318,63 @@ export function drawPWMsymbols(PWMS, PWML, pwm_symbols_per_bit, HTMLDrawingName,
   titleText.textContent = NameToPrint;
   svg.appendChild(titleText);
 }
+
+// ===================================================================================
+// Draw Error Message in a grey box
+export function drawErrorMessage(HTMLDrawingName, NameToPrint, ErrorMsgToPrint) {
+  // svg widht/height
+  const svgHeight = 60; // Height of the SVG element in Pixel
+  const svgWidth = document.getElementById('BitTimingTable').offsetWidth; // Width of the SVG element
+
+  // dimension svg element
+  let svg = document.getElementById(HTMLDrawingName);
+  svg.setAttribute('width', svgWidth);
+  svg.setAttribute('height', svgHeight);
+
+  // Erase previous content (drawing + text)
+  svg.innerHTML = '';
+
+  // Positions in SVG
+  const fontSize = 14; // Schriftgröße
+  const yTextName = 0; // Y-Position des Textes
+  const xTextName = 0; // X-Position des Textes
+
+  const lineWidth = 6; // Line width for consistency
+  const errorBoxColor = '#DDDDDD'; // Color of the error box (same grey as noPWMboxColor)
+
+  const yMarginText2Box = 7; // Margin from text to box
+  const yMarginBox2Bottom = 1; // Margin from box to bottom of SVG
+  const yBoxTop = fontSize + yMarginText2Box; // y-Position of box top
+  const yBoxBottom = svgHeight - yMarginBox2Bottom; // y-Position of box bottom
+
+  // Draw the grey error box
+  let errorRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');  
+  errorRect.setAttribute('x', 0);
+  errorRect.setAttribute('y', yBoxTop); // y-Position of the top edge of the rectangle
+  errorRect.setAttribute('width', svgWidth); // fill the entire width of the SVG
+  errorRect.setAttribute('height', yBoxBottom - yBoxTop); // height of the rectangle
+  errorRect.setAttribute('fill', errorBoxColor);
+  svg.appendChild(errorRect);
+
+  // Title Label (NameToPrint)
+  const titleText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  titleText.setAttribute('x', xTextName); // Distance from left edge
+  titleText.setAttribute('y', yTextName); // Distance from top edge
+  titleText.setAttribute('fill', 'black');
+  titleText.setAttribute('font-size', fontSize);
+  titleText.setAttribute('font-family', 'sans-serif');
+  titleText.setAttribute('dominant-baseline', 'text-before-edge'); // Vertical alignment
+  titleText.textContent = NameToPrint;
+  svg.appendChild(titleText);
+
+  // Error Message Label (ErrorMsgToPrint) - left aligned inside the grey box, vertically centered
+  const errorText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  errorText.setAttribute('x', 10); // Small margin from left edge of box
+  errorText.setAttribute('y', yBoxTop + (yBoxBottom - yBoxTop) / 2); // Vertically centered in the box
+  errorText.setAttribute('fill', 'black');
+  errorText.setAttribute('font-size', fontSize);
+  errorText.setAttribute('font-family', 'sans-serif');
+  errorText.setAttribute('dominant-baseline', 'central'); // Vertical alignment: perfectly center the text on the y position
+  errorText.textContent = ErrorMsgToPrint;
+  svg.appendChild(errorText);
+}

@@ -629,44 +629,202 @@ function displayResults(results) {
 
 // ===================================================================================
 // Display SVGs in HTML
-function displaySVGs(params, results) {
+function displaySVGs(reg) {
 
+  // check if all input parameters are defined for calling drawBitTiming()
+  if (reg.general && reg.general.bt_arb && reg.general.bt_arb.set && reg.general.bt_arb.res &&
+      reg.general.bt_arb.set.prop_and_phaseseg1 !== undefined &&
+      reg.general.bt_arb.set.phaseseg2 !== undefined &&
+      reg.general.bt_arb.res.sp !== undefined &&
+      reg.general.bt_arb.set.sjw !== undefined) {
     // Draw Bit Timing: Arbitration Phase
-  draw_svg.drawBitTiming(
-    0,
-    params.par_prop_and_phaseseg1_arb,
-    params.par_phaseseg2_arb,
-    results.res_sp_arb, // Sample Point in % of Bit Time
-    params.par_sjw_arb, // SJW Length in TQ
-    0, // SSP in % of Bit Time => not used because TDC = false
-    false, // TDC disabled (false)
-    'DrawingBTArb', // name of SVG element in HTML
-    'Arbitration Phase' // label in Drawing
-  ); 
-  
-  // Draw Bit Timing: XL Data Phase
-  draw_svg.drawBitTiming(
-    0,
-    params.par_prop_and_phaseseg1_dat,
-    params.par_phaseseg2_dat,
-    results.res_sp_dat, // Sample Point in % of Bit Time
-    params.par_sjw_dat, // SJW Length in TQ
-    results.res_ssp_dat, // SSP in % of Bit Time
-    params.par_tdc_dat, // TDC enabled (true) or disabled (false)
-    'DrawingBTXLdata', // name of SVG element in HTML
-    'XL Data Phase' // label in Drawing
-  ); 
+    draw_svg.drawBitTiming(
+      0,
+      reg.general.bt_arb.set.prop_and_phaseseg1,
+      reg.general.bt_arb.set.phaseseg2,
+      reg.general.bt_arb.res.sp, // Sample Point in % of Bit Time
+      reg.general.bt_arb.set.sjw, // SJW Length in TQ
+      0, // SSP in % of Bit Time => not used because TDC = false
+      false, // TDC disabled (false)
+      'DrawingBTArb', // name of SVG element in HTML
+      'Arbitration Phase' // label in Drawing
+    ); 
+  } else { // draw error message
+    draw_svg.drawErrorMessage(
+      'DrawingBTArb',
+      'Arbitration Phase',
+      'Missing parameters'
+    );
+  }
 
-  // Draw PWM symbols for XL Data Phase
-  if (params.par_tms === true) {
-      draw_svg.drawPWMsymbols(params.par_pwms, params.par_pwml, results.res_pwm_symbols_per_bit_time, 'DrawingBTXLdataPWM', 'XL Data Phase PWM symbols');
+  // check if all input parameters are defined for calling drawBitTiming()
+  if (reg.general && reg.general.bt_xldata && reg.general.bt_xldata.set && reg.general.bt_xldata.res &&
+      reg.general.bt_global && reg.general.bt_global.set &&
+      reg.general.bt_xldata.set.prop_and_phaseseg1 !== undefined &&
+      reg.general.bt_xldata.set.phaseseg2 !== undefined &&
+      reg.general.bt_xldata.res.sp !== undefined &&
+      reg.general.bt_xldata.set.sjw !== undefined &&
+      reg.general.bt_xldata.res.ssp !== undefined &&
+      reg.general.bt_global.set.tdc !== undefined) {
+    // Draw Bit Timing: XL Data Phase
+    draw_svg.drawBitTiming(
+      0,
+      reg.general.bt_xldata.set.prop_and_phaseseg1,
+      reg.general.bt_xldata.set.phaseseg2,
+      reg.general.bt_xldata.res.sp, // Sample Point in % of Bit Time
+      reg.general.bt_xldata.set.sjw, // SJW Length in TQ
+      reg.general.bt_xldata.res.ssp, // SSP in % of Bit Time
+      reg.general.bt_global.set.tdc, // TDC enabled (true) or disabled (false)
+      'DrawingBTXLdata', // name of SVG element in HTML
+      'XL Data Phase' // label in Drawing
+    ); 
+  } else { // draw error message
+    draw_svg.drawErrorMessage(
+      'DrawingBTXLdata',
+      'XL Data Phase',
+      'Missing parameters'
+    );
+  }
+
+  if (reg.general && reg.general.bt_global && reg.general.bt_global.set &&
+      reg.general.bt_xldata && reg.general.bt_xldata.set && reg.general.bt_xldata.res &&
+      reg.general.bt_global.set.tms !== undefined && reg.general.bt_global.set.tms === true &&
+      reg.general.bt_xldata.set.pwm_short !== undefined &&
+      reg.general.bt_xldata.set.pwm_long !== undefined &&
+      reg.general.bt_xldata.res.pwm_symbols_per_bit_time !== undefined) {
+    draw_svg.drawPWMsymbols(
+      reg.general.bt_xldata.set.pwm_short,
+      reg.general.bt_xldata.set.pwm_long,
+      reg.general.bt_xldata.res.pwm_symbols_per_bit_time,
+      'DrawingBTXLdataPWM',
+      'XL Data Phase PWM symbols');
   } else {
     // Draw PWM symbols with error message
-    draw_svg.drawPWMsymbols(0, 0, 0, 'DrawingBTXLdataPWM', 'XL Data Phase: TMS = off');
+    draw_svg.drawErrorMessage(
+      'DrawingBTXLdataPWM',
+      'XL Data Phase PWM symbols',
+      'Missing parameters or TMS = off'
+    );
   }
 
   // Legend for Bit Timing Drawings: adapt width to table width
   document.getElementById("DrawingBTLegend").style.width =   document.getElementById("BitTimingTable").offsetWidth + "px";
+}
+
+// ===================================================================================
+// Assign HTML Parameters and Results from reg object
+function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
+  // Assign clock frequency parameter: Not assigned because not printed in HTML
+  // paramsHtml['par_clk_freq'] = reg.general.clk_freq;
+
+  if (reg.general && reg.general.bt_global && reg.general.bt_global.set) {
+    paramsHtml['par_tdc_dat'] = reg.general.bt_global.set.tdc !== undefined ? reg.general.bt_global.set.tdc : false; // TDC enabled or disabled
+    paramsHtml['par_tms'] = reg.general.bt_global.set.tms !== undefined ? reg.general.bt_global.set.tms : false; // TMS enabled or disabled
+  } else {
+    // Default values if global settings are not set
+    paramsHtml['par_tdc_dat'] = false; // TDC disabled by default 
+    paramsHtml['par_tms'] = false; // TMS disabled by default
+  }
+
+  // Assign bit timing parameters from arbitration phase
+  if (reg.general.bt_arb && reg.general.bt_arb.set) {
+    paramsHtml['par_brp'] = reg.general.bt_arb.set.brp !== undefined ? reg.general.bt_arb.set.brp : 'no reg';
+    paramsHtml['par_prop_and_phaseseg1_arb'] = reg.general.bt_arb.set.prop_and_phaseseg1 !== undefined ? reg.general.bt_arb.set.prop_and_phaseseg1 : 'no reg';
+    paramsHtml['par_phaseseg2_arb'] = reg.general.bt_arb.set.phaseseg2 !== undefined ? reg.general.bt_arb.set.phaseseg2 : 'no reg';
+    paramsHtml['par_sjw_arb'] = reg.general.bt_arb.set.sjw !== undefined ? reg.general.bt_arb.set.sjw : 'no reg';
+  } else {
+    // Default values if arbitration phase is not set
+    paramsHtml['par_brp'] = 'no reg';
+    paramsHtml['par_prop_and_phaseseg1_arb'] = 'no reg';
+    paramsHtml['par_phaseseg2_arb'] = 'no reg';
+    paramsHtml['par_sjw_arb'] = 'no reg';
+  }
+
+  // Assign bit timing parameters from XL data phase
+  if (reg.general.bt_xldata && reg.general.bt_xldata.set) {
+    paramsHtml['par_prop_and_phaseseg1_dat'] = reg.general.bt_xldata.set.prop_and_phaseseg1 !== undefined ? reg.general.bt_xldata.set.prop_and_phaseseg1 : 'no reg';
+    paramsHtml['par_phaseseg2_dat'] = reg.general.bt_xldata.set.phaseseg2 !== undefined ? reg.general.bt_xldata.set.phaseseg2 : 'no reg';
+    paramsHtml['par_sjw_dat'] = reg.general.bt_xldata.set.sjw !== undefined ? reg.general.bt_xldata.set.sjw : 'no reg';
+    if (reg.general.bt_global.set.tms === true) {
+      // TMS enabled, assign default value
+      paramsHtml['par_sspoffset_dat'] = 'TMS on';
+    } else if (reg.general.bt_global.set.tdc === true) {
+      // TDC enabled, assign SSP offset
+      paramsHtml['par_sspoffset_dat'] = reg.general.bt_xldata.set.ssp_offset !== undefined ? reg.general.bt_xldata.set.ssp_offset : 'no reg';
+    } else {
+      // TDC disabled, assign default value
+      paramsHtml['par_sspoffset_dat'] = 'TDC off';
+    }
+  } else {
+    // Default values if data phase is not set
+    paramsHtml['par_prop_and_phaseseg1_dat'] = 'no reg';
+    paramsHtml['par_phaseseg2_dat'] = 'no reg';
+    paramsHtml['par_sjw_dat'] = 'no reg'; 
+    paramsHtml['par_sspoffset_dat'] = 'no reg';
+  }
+
+  // Assign PWM parameters from XL data phase
+  if (reg.general.bt_xldata && reg.general.bt_xldata.set && reg.general.bt_global.set.tms === true) {
+    paramsHtml['par_pwmo'] = reg.general.bt_xldata.set.pwm_offset !== undefined ? reg.general.bt_xldata.set.pwm_offset : 'no reg';
+    paramsHtml['par_pwms'] = reg.general.bt_xldata.set.pwm_short !== undefined ? reg.general.bt_xldata.set.pwm_short : 'no reg';
+    paramsHtml['par_pwml'] = reg.general.bt_xldata.set.pwm_long !== undefined ? reg.general.bt_xldata.set.pwm_long : 'no reg';
+  } else {
+    paramsHtml['par_pwmo'] = 'TMS off';
+    paramsHtml['par_pwms'] = 'TMS off';
+    paramsHtml['par_pwml'] = 'TMS off';
+  }
+
+  // TODO: apply check, if reg.general.* is defined for each of the parametrs and results (e.g. ERR2 is displayed in HTML if XBTP is not parsed, see how it is done for PWM)
+
+  // Assign clock results
+  resultsHtml['res_clk_period'] = reg.general.clk_period;
+
+  // Assign bit timing results from arbitration phase
+  if (reg.general.bt_arb && reg.general.bt_arb.res) {
+    resultsHtml['res_bitrate_arb'] = reg.general.bt_arb.res.bitrate !== undefined ? reg.general.bt_arb.res.bitrate : 'no reg';
+    resultsHtml['res_sp_arb'] = reg.general.bt_arb.res.sp !== undefined ? reg.general.bt_arb.res.sp : 'no reg';
+    resultsHtml['res_tqperbit_arb'] = reg.general.bt_arb.res.tq_per_bit !== undefined ? reg.general.bt_arb.res.tq_per_bit : 'no reg';
+    resultsHtml['res_bitlength_arb'] = reg.general.bt_arb.res.bit_length !== undefined ? reg.general.bt_arb.res.bit_length : 'no reg';
+    resultsHtml['res_tqlen'] = reg.general.bt_arb.res.tq_len !== undefined ? reg.general.bt_arb.res.tq_len : 'no reg';
+  } else {
+    // Default values if arbitration phase is not set
+    resultsHtml['res_bitrate_arb'] = 'no reg';
+    resultsHtml['res_sp_arb'] = 'no reg';
+    resultsHtml['res_tqperbit_arb'] = 'no reg';
+    resultsHtml['res_bitlength_arb'] = 'no reg';
+    resultsHtml['res_tqlen'] = 'no reg';
+  } 
+
+  // Assign bit timing results from XL data phase
+  if (reg.general.bt_xldata && reg.general.bt_xldata.res) {
+    resultsHtml['res_bitrate_dat'] = reg.general.bt_xldata.res.bitrate !== undefined ? reg.general.bt_xldata.res.bitrate : 'no reg';
+    resultsHtml['res_sp_dat'] = reg.general.bt_xldata.res.sp !== undefined ? reg.general.bt_xldata.res.sp : 'no reg';
+    resultsHtml['res_ssp_dat'] = reg.general.bt_xldata.res.ssp !== undefined ? reg.general.bt_xldata.res.ssp : 'no reg';
+    resultsHtml['res_tqperbit_dat'] = reg.general.bt_xldata.res.tq_per_bit !== undefined ? reg.general.bt_xldata.res.tq_per_bit : 'no reg';
+    resultsHtml['res_bitlength_dat'] = reg.general.bt_xldata.res.bit_length !== undefined ? reg.general.bt_xldata.res.bit_length : 'no reg';
+  } else {
+    // Default values if data phase is not set
+    resultsHtml['res_bitrate_dat'] = 'no reg';
+    resultsHtml['res_sp_dat'] = 'no reg';
+    resultsHtml['res_ssp_dat'] = 'no reg';
+    resultsHtml['res_tqperbit_dat'] = 'no reg';
+    resultsHtml['res_bitlength_dat'] = 'no reg';
+  } 
+
+  // Assign PWM results from XL data phase
+  if (reg.general.bt_xldata && reg.general.bt_xldata.res && reg.general.bt_global.set.tms === true) {
+    resultsHtml['res_pwm_symbol_len_ns'] = reg.general.bt_xldata.res.pwm_symbol_len_ns !== undefined ? reg.general.bt_xldata.res.pwm_symbol_len_ns : 'no reg';
+    resultsHtml['res_pwm_symbol_len_clk_cycles'] = reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles !== undefined ? reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles : 'no reg';
+    resultsHtml['res_pwm_symbols_per_bit_time'] = reg.general.bt_xldata.res.pwm_symbols_per_bit_time !== undefined ? reg.general.bt_xldata.res.pwm_symbols_per_bit_time : 'no reg';
+  } else {
+    // Default values if PWM is not set
+    resultsHtml['res_pwm_symbol_len_ns'] = 'TMS off';
+    resultsHtml['res_pwm_symbol_len_clk_cycles'] = 'TMS off';
+    resultsHtml['res_pwm_symbols_per_bit_time'] = 'TMS off';
+  }
+
+  console.log('[Info] assignHtmlParamsAndResults(): Assigned parameters:', paramsHtml);
+  console.log('[Info] assignHtmlParamsAndResults(): Assigned results:', resultsHtml);
 }
 
 // ===================================================================================
@@ -700,7 +858,7 @@ function processUserRegisterValues() {
   
   // a) Step 1: Parse the text and generate raw register array
   parseUserRegisterValues(userRegText, reg);
-  console.log('[Info] Step 1 - Parsed raw register values:', reg.raw);
+  console.log('[Info] Step 1 - Parsed raw register values (reg.raw):', reg.raw);
   // Check for parsing errors
   if (reg.parse_output.hasErrors) {
     // Display all validation reports accumulated so far
@@ -727,122 +885,8 @@ function processUserRegisterValues() {
   displayResults(resultsHtml);
 
   // Display SVGs in HTML
-  displaySVGs(paramsHtml, resultsHtml); 
+  displaySVGs(reg); 
 
   // Display: Validation Reports in HTML textarea
   displayValidationReport(reg);
-}
-
-// ===================================================================================
-// Assign HTML Parameters and Results from reg object
-function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
-  // Assign clock frequency parameter: Not assigned because not printed in HTML
-  // paramsHtml['par_clk_freq'] = reg.general.clk_freq;
-
-  if (reg.general && reg.general.bt_global && reg.general.bt_global.set) {
-    paramsHtml['par_tdc_dat'] = reg.general.bt_global.set.tdc;
-    paramsHtml['par_tms'] = reg.general.bt_global.set.tms;
-  } else {
-    // Default values if global settings are not set
-    paramsHtml['par_tdc_dat'] = false; // TDC disabled by default 
-    paramsHtml['par_tms'] = false; // TMS disabled by default
-  }
-
-  // Assign bit timing parameters from arbitration phase
-  if (reg.general.bt_arb && reg.general.bt_arb.set) {
-    paramsHtml['par_brp'] = reg.general.bt_arb.set.brp;
-    paramsHtml['par_prop_and_phaseseg1_arb'] = reg.general.bt_arb.set.prop_and_phaseseg1;
-    paramsHtml['par_phaseseg2_arb'] = reg.general.bt_arb.set.phaseseg2;
-    paramsHtml['par_sjw_arb'] = reg.general.bt_arb.set.sjw;
-  } else {
-    // Default values if arbitration phase is not set
-    paramsHtml['par_brp'] = 'miss'; // Not applicable
-    paramsHtml['par_prop_and_phaseseg1_arb'] = 'miss';
-    paramsHtml['par_phaseseg2_arb'] = 'miss';
-    paramsHtml['par_sjw_arb'] = 'miss';
-  }
-
-  // Assign bit timing parameters from XL data phase
-  if (reg.general.bt_xldata && reg.general.bt_xldata.set) {
-    paramsHtml['par_prop_and_phaseseg1_dat'] = reg.general.bt_xldata.set.prop_and_phaseseg1;
-    paramsHtml['par_phaseseg2_dat'] = reg.general.bt_xldata.set.phaseseg2;
-    paramsHtml['par_sjw_dat'] = reg.general.bt_xldata.set.sjw;
-    if (reg.general.bt_global.set.tms) {
-      // TMS enabled, assign default value
-      paramsHtml['par_sspoffset_dat'] = 'TMS on';
-    } else if (reg.general.bt_global.set.tdc) {
-      // TDC enabled, assign SSP offset
-      paramsHtml['par_sspoffset_dat'] = reg.general.bt_xldata.set.ssp_offset;
-    } else {
-      // TDC disabled, assign default value
-      paramsHtml['par_sspoffset_dat'] = 'TDC off';
-    }
-  } else {
-    // Default values if data phase is not set
-    paramsHtml['par_prop_and_phaseseg1_dat'] = 'miss';
-    paramsHtml['par_phaseseg2_dat'] = 'miss';
-    paramsHtml['par_sjw_dat'] = 'miss';
-    paramsHtml['par_sspoffset_dat'] = 'miss';
-  }
-
-  // Assign PWM parameters from XL data phase
-  if (reg.general.bt_xldata && reg.general.bt_xldata.set && reg.general.bt_global.set.tms) {
-    paramsHtml['par_pwmo'] = reg.general.bt_xldata.set.pwm_offset;
-    paramsHtml['par_pwms'] = reg.general.bt_xldata.set.pwm_short;
-    paramsHtml['par_pwml'] = reg.general.bt_xldata.set.pwm_long;
-  } else {
-    paramsHtml['par_pwmo'] = 'TMS off';
-    paramsHtml['par_pwms'] = 'TMS off';
-    paramsHtml['par_pwml'] = 'TMS off';
-  }
-
-  // Assign clock results
-  resultsHtml['res_clk_period'] = reg.general.clk_period;
-
-  // Assign bit timing results from arbitration phase
-  if (reg.general.bt_arb && reg.general.bt_arb.res) {
-    resultsHtml['res_bitrate_arb'] = reg.general.bt_arb.res.bitrate;
-    resultsHtml['res_sp_arb'] = reg.general.bt_arb.res.sp;
-    resultsHtml['res_tqperbit_arb'] = reg.general.bt_arb.res.tq_per_bit;
-    resultsHtml['res_bitlength_arb'] = reg.general.bt_arb.res.bit_length;
-    resultsHtml['res_tqlen'] = reg.general.bt_arb.res.tq_len;
-  } else {
-    // Default values if arbitration phase is not set
-    resultsHtml['res_bitrate_arb'] = 'miss';
-    resultsHtml['res_sp_arb'] = 'miss';
-    resultsHtml['res_tqperbit_arb'] = 'miss';
-    resultsHtml['res_bitlength_arb'] = 'miss';
-    resultsHtml['res_tqlen'] = 'miss';
-  } 
-
-  // Assign bit timing results from XL data phase
-  if (reg.general.bt_xldata && reg.general.bt_xldata.res) {
-    resultsHtml['res_bitrate_dat'] = reg.general.bt_xldata.res.bitrate;
-    resultsHtml['res_sp_dat'] = reg.general.bt_xldata.res.sp;
-    resultsHtml['res_ssp_dat'] = reg.general.bt_xldata.res.ssp;
-    resultsHtml['res_tqperbit_dat'] = reg.general.bt_xldata.res.tq_per_bit;
-    resultsHtml['res_bitlength_dat'] = reg.general.bt_xldata.res.bit_length;
-  } else {
-    // Default values if data phase is not set
-    resultsHtml['res_bitrate_dat'] = 'miss';
-    resultsHtml['res_sp_dat'] = 'miss';
-    resultsHtml['res_ssp_dat'] = 'miss';
-    resultsHtml['res_tqperbit_dat'] = 'miss';
-    resultsHtml['res_bitlength_dat'] = 'miss';
-  } 
-
-  // Assign PWM results from XL data phase
-  if (reg.general.bt_xldata && reg.general.bt_xldata.res && reg.general.bt_global.set.tms) {
-    resultsHtml['res_pwm_symbol_len_ns'] = reg.general.bt_xldata.res.pwm_symbol_len_ns;
-    resultsHtml['res_pwm_symbol_len_clk_cycles'] = reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles;
-    resultsHtml['res_pwm_symbols_per_bit_time'] = reg.general.bt_xldata.res.pwm_symbols_per_bit_time;
-  } else {
-    // Default values if PWM is not set
-    resultsHtml['res_pwm_symbol_len_ns'] = 'TMS off';
-    resultsHtml['res_pwm_symbol_len_clk_cycles'] = 'TMS off';
-    resultsHtml['res_pwm_symbols_per_bit_time'] = 'TMS off';
-  }
-
-  console.log('[Info] assignHtmlParamsAndResults(): Assigned parameters:', paramsHtml);
-  console.log('[Info] assignHtmlParamsAndResults(): Assigned results:', resultsHtml);
 }
