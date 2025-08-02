@@ -20,25 +20,25 @@ const floatParams = [
 
 const checkboxParams = [
   'par_tms',
-  'par_tdc_dat'
+  'par_tdc_datxl'
 ];
 
 const floatResults = [
   'res_clk_period',
   'res_bitrate_arb',
-  'res_bitrate_dat',
+  'res_bitrate_datxl',
   'res_sp_arb',
-  'res_sp_dat',
-  'res_ssp_dat',
+  'res_sp_datxl',
+  'res_ssp_datxl',
   'res_tqlen',
-  'res_pwm_symbol_len_ns'
+  'res_pwm_symbol_len_ns_datxl'
 ];
 
 const exludeFromPrintResults = [
-  'res_sspoffset_dat',
-  'res_pwmo',
-  'res_pwms',
-  'res_pwml'
+  'res_sspoffset_datxl',
+  'res_pwmo_datxl',
+  'res_pwms_datxl',
+  'res_pwml_datxl'
 ];
 
 // when document is loaded: initialize page
@@ -142,161 +142,6 @@ function initializeRegisterTextArea() {
 }
 
 // ===================================================================================
-// Parameter: Validate ranges and return validation report
-function paramsFromRegsXLBitTimeRangeValidate(params) {
-  const validationReport = {
-    reports: [],
-    hasErrors: false,
-    hasWarnings: false
-  };
-
-  // Check validity of parameters (format/type)
-  // since "params" was created by this script (from Register), the format of the params does not need to be checked.
-  // Hint: isValidNumber() assumes a string as parameter => so it will not work here, when the parameters are already numbers.
-
-  // Check value range of parameters (value range)
-  for (const id in params) {
-    // Skip register structure entries
-    if (id === 'reg') continue;
-    
-    // Skip non-parameter entries (transceiverType, canType, etc.) // TODO: check if this can be removed, add error messages instead
-    if (!id.startsWith('par_')) continue;
-    
-    const value = params[id]; // Direct value access
-    
-    if (id == 'par_brp') {
-      if (!((value >= 1) && (value <= 32))) { 
-        validationReport.reports.push({
-          severityLevel: 3, // error
-          msg: `${id}: BRP is not in ISO11898-1:2024 range. Valid range: 1..32`
-        });
-        validationReport.hasErrors = true;
-      }
-    } else if (id == 'par_prop_and_phaseseg1_arb') {
-      if (!((value >= 1) && (value <= 512))) { 
-        validationReport.reports.push({
-          severityLevel: 3, // error
-          msg: `${id}: Arb. PropSeg + PhaseSeg1 is not in ISO11898-1:2024 range. Valid range: 1..512`
-        });
-        validationReport.hasErrors = true;
-      }
-    } else if (id == 'par_phaseseg2_arb') {
-      if (!((value >= 2) && (value <= 128))) { 
-        validationReport.reports.push({
-          severityLevel: 3, // error
-          msg: `${id}: Arb. PhaseSeg2 is not in ISO11898-1:2024 range. Valid range: 2..128`
-        });
-        validationReport.hasErrors = true;
-      }
-    } else if (id == 'par_sjw_arb') {
-      if (params.par_phaseseg2_arb && !((value <= params.par_phaseseg2_arb))) { 
-        validationReport.reports.push({
-          severityLevel: 3, // error
-          msg: `${id}: Arb. SJW > Arb. PhaseSeg2. Valid range: SJW <= min(PhaseSeg1, PhaseSeg2)`
-        });
-        validationReport.hasErrors = true;
-      }
-    } else if (id == 'par_prop_and_phaseseg1_dat') {
-      if (!((value >= 1) && (value <= 256))) { 
-        validationReport.reports.push({
-          severityLevel: 3, // error
-          msg: `${id}: Data PropSeg + PhaseSeg1 is not in ISO11898-1:2024 range. Valid range: 1..256`
-        });
-        validationReport.hasErrors = true;
-      }
-    } else if (id == 'par_phaseseg2_dat') {
-      if (!((value >= 2) && (value <= 128))) { 
-        validationReport.reports.push({
-          severityLevel: 3, // error
-          msg: `${id}: Data PhaseSeg2 is not in ISO11898-1:2024 range. Valid range: 2..128`
-        });
-        validationReport.hasErrors = true;
-      }
-    } else if (id == 'par_sjw_dat') {
-      if (params.par_phaseseg2_dat && !((value <= params.par_phaseseg2_dat))) { 
-        validationReport.reports.push({
-          severityLevel: 2, // Warning
-          msg: `${id}: Data SJW > Data PhaseSeg2. Valid range: SJW <= min(PhaseSeg1, PhaseSeg2)`
-        });
-        validationReport.hasWarnings = true;
-      }
-    } else { 
-      // default check for positive values
-      if (checkboxParams.includes(id)) {
-        // no check
-      } else {
-        if (typeof value === 'number' && value >= 0) {
-          // valid range - no action needed
-        } else {
-          // TODO: this is dead-code, cannot happen
-          validationReport.reports.push({
-            severityLevel: 3, // error
-            msg: `${id}: Value must be a positive number`
-          });
-          validationReport.hasErrors = true;
-        }
-      }
-    }
-  }
-
-  // Add success message if no range validation issues
-  if (!validationReport.hasErrors && !validationReport.hasWarnings) {
-    validationReport.reports.push({
-      severityLevel: 0, // info
-      msg: 'All parameter ranges are valid'
-    });
-  }
-  
-  return validationReport;
-} // func paramsFromRegsRangeValidate
- 
-// ===================================================================================
-// calculate results from params
-function calculateResultsFromUserRegisterValues(params) {
-  // input: params object with all parameters
-  // output: results object with all calculated results
-  
-  const results = {};
-
-  // Calculate results
-  results['res_clk_period']   = 1000/par_clk_freq_g; // 1000 / MHz = ns
-  results['res_tqperbit_arb'] = 1 + params.par_prop_and_phaseseg1_arb + params.par_phaseseg2_arb;
-  results['res_tqperbit_dat'] = 1 + params.par_prop_and_phaseseg1_dat + params.par_phaseseg2_dat;
-  results['res_bitrate_arb']  = par_clk_freq_g / (params.par_brp * results.res_tqperbit_arb);
-  results['res_bitrate_dat']  = par_clk_freq_g / (params.par_brp * results.res_tqperbit_dat);
-  results['res_sp_arb']       = (1 - params.par_phaseseg2_arb/results.res_tqperbit_arb) * 100;
-  results['res_sp_dat']       = (1 - params.par_phaseseg2_dat/results.res_tqperbit_dat) * 100;
-
-  if (params.par_tdc_dat === true) {
-	  if (params.par_tms === false) {
-	    results['res_sspoffset_dat']= (params.par_prop_and_phaseseg1_dat + 1)* params.par_brp - 1;
-    } else { // true
-	    results['res_sspoffset_dat']= 'TMS on';
-    }
-  } else { // tdc=false
-	  results['res_sspoffset_dat']= 'TDC off';
-	}
-	
-  if (typeof results.res_sspoffset_dat === "number") {
-    results['res_ssp_dat'] = results.res_sspoffset_dat/(results.res_tqperbit_dat*params.par_brp) * 100;
-  } else if (typeof results.res_sspoffset_dat === "string") {
-	  results['res_ssp_dat'] = results.res_sspoffset_dat;
-  }
-  
-  results['res_bitlength_arb'] = 1000 / results.res_bitrate_arb;
-  results['res_bitlength_dat'] = 1000 / results.res_bitrate_dat;
-	
-  results['res_tqlen'] = results.res_clk_period * params.par_brp;
-
-  // PWM Results
-  results['res_pwm_symbol_len_ns']         = (params.par_pwms + params.par_pwml) * results.res_clk_period;
-	results['res_pwm_symbol_len_clk_cycles'] = (params.par_pwms + params.par_pwml);
-	results['res_pwm_symbols_per_bit_time']  = (results.res_tqperbit_dat * params.par_brp) / results.res_pwm_symbol_len_clk_cycles;
-  
-  return results; // return results object
-}
-
-// ===================================================================================
 // parseUserRegisterValues: Parse text and generate raw register array with addr and value
 function parseUserRegisterValues(userRegText, reg) {
   // Initialize parse output in reg object
@@ -361,88 +206,6 @@ function parseUserRegisterValues(userRegText, reg) {
   }
 
   return reg.parse_output;
-}
-
-// ===================================================================================
-// checkConsistencyOfUserRegisterValues: Check consistency between params and results
-function checkConsistencyOfUserRegisterValues(params, results) {
-  const validationReport = {
-    reports: [],
-    hasErrors: false,
-    hasWarnings: false
-  };
-  
-  // Check if TDC is enabled for high bit rates (>= 1 Mbit/s)
-  if (results.res_bitrate_dat >= 1.0 && !params.par_tdc_dat) {
-    validationReport.reports.push({
-      severityLevel: 1, // recommendation
-      msg: 'TDC should be enabled for data bit rates >= 1 Mbit/s'
-    });
-  }
-  
-  // Check PWM consistency (if TMS is enabled)
-  if (params.par_tms) {
-    // PWM proporties
-     validationReport.reports.push({
-       severityLevel: 0, // Info
-       msg: `PWM: length = ${results.res_pwm_symbol_len_clk_cycles} clock cycles = ${results.res_pwm_symbol_len_ns.toFixed(2)} ns, PWM symbols per XL data bit = ${results.res_pwm_symbols_per_bit_time.toFixed(2)} symbols`
-     });
-   
-    // check if PWM length matches data bit length
-    const mtq_per_xldata_bit = results.res_tqperbit_dat * params.par_brp;
-    if ((((mtq_per_xldata_bit) % results.res_pwm_symbol_len_clk_cycles) > 0) || (mtq_per_xldata_bit < results.res_pwm_symbol_len_clk_cycles)) {
-      validationReport.reports.push({
-        severityLevel: 3, // Error
-        msg: `PWM length (${mtq_per_xldata_bit} clock cycles) != PWM symbol length (${results.res_pwm_symbol_len_clk_cycles} clock cycles)`
-      });
-      validationReport.hasErrors = true;      
-    }
-
-    // check if PWMO correctness
-    if (((mtq_per_xldata_bit - params.par_pwmo) % results.res_pwm_symbol_len_clk_cycles) > 0) {
-      validationReport.reports.push({
-        severityLevel: 3, // Error
-        msg: `PWM Offset (PWMO) has wrong value: ${params.par_pwmo} clock cycles`
-      });
-      validationReport.hasErrors = true;      
-    }
-  }
-  
-  // Check if sample point is within reasonable range (70-90%)
-  if (results.res_sp_arb < 70 || results.res_sp_arb > 90) {
-    validationReport.reports.push({
-      severityLevel: 2, // warning
-      msg: `Arbitration sample point (${results.res_sp_arb.toFixed(1)}%) is outside recommended range (70-90%)`
-    });
-    validationReport.hasWarnings = true;
-  }
- 
-  // Check if SJW is not larger than phase segments
-  if (params.par_sjw_arb > params.par_phaseseg2_arb) {
-    validationReport.reports.push({
-      severityLevel: 3, // error
-      msg: 'Arbitration SJW is larger than minimum phase segment'
-    });
-    validationReport.hasErrors = true;
-  }
-  
-  if (params.par_sjw_dat > params.par_phaseseg2_dat) {
-    validationReport.reports.push({
-      severityLevel: 3, // error
-      msg: 'Data SJW is larger than minimum phase segment'
-    });
-    validationReport.hasErrors = true;
-  }
-  
-  // Add success message if no issues found
-  if (validationReport.reports.length === 0) {
-    validationReport.reports.push({
-      severityLevel: 0, // info
-      msg: 'All consistency checks passed'
-    });
-  }
-  
-  return validationReport;
 }
 
 // ===================================================================================
@@ -718,11 +481,11 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
   // paramsHtml['par_clk_freq'] = reg.general.clk_freq;
 
   if (reg.general && reg.general.bt_global && reg.general.bt_global.set) {
-    paramsHtml['par_tdc_dat'] = reg.general.bt_global.set.tdc !== undefined ? reg.general.bt_global.set.tdc : false; // TDC enabled or disabled
+    paramsHtml['par_tdc_datxl'] = reg.general.bt_global.set.tdc !== undefined ? reg.general.bt_global.set.tdc : false; // TDC enabled or disabled
     paramsHtml['par_tms'] = reg.general.bt_global.set.tms !== undefined ? reg.general.bt_global.set.tms : false; // TMS enabled or disabled
   } else {
     // Default values if global settings are not set
-    paramsHtml['par_tdc_dat'] = false; // TDC disabled by default 
+    paramsHtml['par_tdc_datxl'] = false; // TDC disabled by default 
     paramsHtml['par_tms'] = false; // TMS disabled by default
   }
 
@@ -742,25 +505,25 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
 
   // Assign bit timing parameters from XL data phase
   if (reg.general.bt_xldata && reg.general.bt_xldata.set) {
-    paramsHtml['par_prop_and_phaseseg1_dat'] = reg.general.bt_xldata.set.prop_and_phaseseg1 !== undefined ? reg.general.bt_xldata.set.prop_and_phaseseg1 : 'no reg';
-    paramsHtml['par_phaseseg2_dat'] = reg.general.bt_xldata.set.phaseseg2 !== undefined ? reg.general.bt_xldata.set.phaseseg2 : 'no reg';
-    paramsHtml['par_sjw_dat'] = reg.general.bt_xldata.set.sjw !== undefined ? reg.general.bt_xldata.set.sjw : 'no reg';
+    paramsHtml['par_prop_and_phaseseg1_datxl'] = reg.general.bt_xldata.set.prop_and_phaseseg1 !== undefined ? reg.general.bt_xldata.set.prop_and_phaseseg1 : 'no reg';
+    paramsHtml['par_phaseseg2_datxl'] = reg.general.bt_xldata.set.phaseseg2 !== undefined ? reg.general.bt_xldata.set.phaseseg2 : 'no reg';
+    paramsHtml['par_sjw_datxl'] = reg.general.bt_xldata.set.sjw !== undefined ? reg.general.bt_xldata.set.sjw : 'no reg';
     if (reg.general.bt_global.set.tms === true) {
       // TMS enabled, assign default value
-      paramsHtml['par_sspoffset_dat'] = 'TMS on';
+      paramsHtml['par_sspoffset_datxl'] = 'TMS on';
     } else if (reg.general.bt_global.set.tdc === true) {
       // TDC enabled, assign SSP offset
-      paramsHtml['par_sspoffset_dat'] = reg.general.bt_xldata.set.ssp_offset !== undefined ? reg.general.bt_xldata.set.ssp_offset : 'no reg';
+      paramsHtml['par_sspoffset_datxl'] = reg.general.bt_xldata.set.ssp_offset !== undefined ? reg.general.bt_xldata.set.ssp_offset : 'no reg';
     } else {
       // TDC disabled, assign default value
-      paramsHtml['par_sspoffset_dat'] = 'TDC off';
+      paramsHtml['par_sspoffset_datxl'] = 'TDC off';
     }
   } else {
     // Default values if data phase is not set
-    paramsHtml['par_prop_and_phaseseg1_dat'] = 'no reg';
-    paramsHtml['par_phaseseg2_dat'] = 'no reg';
-    paramsHtml['par_sjw_dat'] = 'no reg'; 
-    paramsHtml['par_sspoffset_dat'] = 'no reg';
+    paramsHtml['par_prop_and_phaseseg1_datxl'] = 'no reg';
+    paramsHtml['par_phaseseg2_datxl'] = 'no reg';
+    paramsHtml['par_sjw_datxl'] = 'no reg'; 
+    paramsHtml['par_sspoffset_datxl'] = 'no reg';
   }
 
   // Assign PWM parameters from XL data phase
@@ -797,30 +560,30 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
 
   // Assign bit timing results from XL data phase
   if (reg.general.bt_xldata && reg.general.bt_xldata.res) {
-    resultsHtml['res_bitrate_dat'] = reg.general.bt_xldata.res.bitrate !== undefined ? reg.general.bt_xldata.res.bitrate : 'no reg';
-    resultsHtml['res_sp_dat'] = reg.general.bt_xldata.res.sp !== undefined ? reg.general.bt_xldata.res.sp : 'no reg';
-    resultsHtml['res_ssp_dat'] = reg.general.bt_xldata.res.ssp !== undefined ? reg.general.bt_xldata.res.ssp : 'no reg';
-    resultsHtml['res_tqperbit_dat'] = reg.general.bt_xldata.res.tq_per_bit !== undefined ? reg.general.bt_xldata.res.tq_per_bit : 'no reg';
-    resultsHtml['res_bitlength_dat'] = reg.general.bt_xldata.res.bit_length !== undefined ? reg.general.bt_xldata.res.bit_length : 'no reg';
+    resultsHtml['res_bitrate_datxl'] = reg.general.bt_xldata.res.bitrate !== undefined ? reg.general.bt_xldata.res.bitrate : 'no reg';
+    resultsHtml['res_sp_datxl'] = reg.general.bt_xldata.res.sp !== undefined ? reg.general.bt_xldata.res.sp : 'no reg';
+    resultsHtml['res_ssp_datxl'] = reg.general.bt_xldata.res.ssp !== undefined ? reg.general.bt_xldata.res.ssp : 'no reg';
+    resultsHtml['res_tqperbit_datxl'] = reg.general.bt_xldata.res.tq_per_bit !== undefined ? reg.general.bt_xldata.res.tq_per_bit : 'no reg';
+    resultsHtml['res_bitlength_datxl'] = reg.general.bt_xldata.res.bit_length !== undefined ? reg.general.bt_xldata.res.bit_length : 'no reg';
   } else {
     // Default values if data phase is not set
-    resultsHtml['res_bitrate_dat'] = 'no reg';
-    resultsHtml['res_sp_dat'] = 'no reg';
-    resultsHtml['res_ssp_dat'] = 'no reg';
-    resultsHtml['res_tqperbit_dat'] = 'no reg';
-    resultsHtml['res_bitlength_dat'] = 'no reg';
+    resultsHtml['res_bitrate_datxl'] = 'no reg';
+    resultsHtml['res_sp_datxl'] = 'no reg';
+    resultsHtml['res_ssp_datxl'] = 'no reg';
+    resultsHtml['res_tqperbit_datxl'] = 'no reg';
+    resultsHtml['res_bitlength_datxl'] = 'no reg';
   } 
 
   // Assign PWM results from XL data phase
   if (reg.general.bt_xldata && reg.general.bt_xldata.res && reg.general.bt_global.set.tms === true) {
-    resultsHtml['res_pwm_symbol_len_ns'] = reg.general.bt_xldata.res.pwm_symbol_len_ns !== undefined ? reg.general.bt_xldata.res.pwm_symbol_len_ns : 'no reg';
-    resultsHtml['res_pwm_symbol_len_clk_cycles'] = reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles !== undefined ? reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles : 'no reg';
-    resultsHtml['res_pwm_symbols_per_bit_time'] = reg.general.bt_xldata.res.pwm_symbols_per_bit_time !== undefined ? reg.general.bt_xldata.res.pwm_symbols_per_bit_time : 'no reg';
+    resultsHtml['res_pwm_symbol_len_ns_datxl'] = reg.general.bt_xldata.res.pwm_symbol_len_ns !== undefined ? reg.general.bt_xldata.res.pwm_symbol_len_ns : 'no reg';
+    resultsHtml['res_pwm_symbol_len_clk_cycles_datxl'] = reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles !== undefined ? reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles : 'no reg';
+    resultsHtml['res_pwm_symbols_per_bit_time_datxl'] = reg.general.bt_xldata.res.pwm_symbols_per_bit_time !== undefined ? reg.general.bt_xldata.res.pwm_symbols_per_bit_time : 'no reg';
   } else {
     // Default values if PWM is not set
-    resultsHtml['res_pwm_symbol_len_ns'] = 'TMS off';
-    resultsHtml['res_pwm_symbol_len_clk_cycles'] = 'TMS off';
-    resultsHtml['res_pwm_symbols_per_bit_time'] = 'TMS off';
+    resultsHtml['res_pwm_symbol_len_ns_datxl'] = 'TMS off';
+    resultsHtml['res_pwm_symbol_len_clk_cycles_datxl'] = 'TMS off';
+    resultsHtml['res_pwm_symbols_per_bit_time_datxl'] = 'TMS off';
   }
 
   console.log('[Info] assignHtmlParamsAndResults(): Assigned parameters:', paramsHtml);

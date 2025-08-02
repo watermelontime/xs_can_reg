@@ -9,7 +9,13 @@ export function processRegsOfX_CAN(reg) {
   console.log('[Info] Step 2 - Mapped register values (reg object):', reg);
 
   // c1) Process Bit Timing registers
-  procRegsBitTiming(reg);
+  procRegsPrtBitTiming(reg);
+  
+  // c2) Process Other PRT registers
+  procRegsPrtOther(reg);
+  // TODO: prepare proper testdata with all registers
+  // TODO: test the new function => seems to have some halucinations
+
   console.log('[Info] Registers with data and reports, reg object:', reg);
 }
 
@@ -84,7 +90,7 @@ function mapRawRegistersToNames(reg) {
 
 // ===================================================================================
 // Process Nominal Bit Timing Register: Extract parameters, validate ranges, calculate results, generate report
-export function procRegsBitTiming(reg) {
+export function procRegsPrtBitTiming(reg) {
   
   // Initialize bit timing structure in reg.general
   if (!reg.general.bt_global) {
@@ -482,5 +488,298 @@ export function procRegsBitTiming(reg) {
     } // end if XLOE || XLTR
 
   } // end if PCFG
+
+}
+
+// ===================================================================================
+// Process Other PRT Registers: Extract parameters, validate ranges, generate report
+export function procRegsPrtOther(reg) {
+
+  // === ENDN: Endianness Test Register ====================================
+  if ('ENDN' in reg && reg.ENDN.int32 !== undefined) {
+    const regValue = reg.ENDN.int32;
+
+    // 0. Extend existing register structure
+    reg.ENDN.fields = {};
+    reg.ENDN.report = []; // Initialize report array
+
+    // 1. Decode ENDN register (simple 32-bit value)
+    reg.ENDN.fields.ETV = regValue; // Endianness Test Value
+
+    // 2. Generate human-readable register report
+    if (regValue === 0x87654321) {
+      reg.ENDN.report.push({
+        severityLevel: 0, // info
+        msg: `ENDN: ${reg.ENDN.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[ETV] Endianness Test Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')} (Correct)`
+      });
+    } else {
+      reg.ENDN.report.push({
+        severityLevel: 2, // warning
+        msg: `ENDN: ${reg.ENDN.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[ETV] Endianness Test Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')} (Expected: 0x87654321)`
+      });
+    }
+  }
+
+  // === PREL: PRT Release Identification Register =========================
+  if ('PREL' in reg && reg.PREL.int32 !== undefined) {
+    const regValue = reg.PREL.int32;
+
+    // 0. Extend existing register structure
+    reg.PREL.fields = {};
+    reg.PREL.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of PREL register
+    reg.PREL.fields.REL = getBits(regValue, 31, 28); // Release
+    reg.PREL.fields.STEP = getBits(regValue, 27, 20); // Step
+    reg.PREL.fields.SUBSTEP = getBits(regValue, 19, 16); // Substep
+    reg.PREL.fields.YEAR = getBits(regValue, 15, 12); // Year
+    reg.PREL.fields.MON = getBits(regValue, 11, 8); // Month
+    reg.PREL.fields.DAY = getBits(regValue, 7, 0); // Day
+
+    // 2. Generate human-readable register report
+    reg.PREL.report.push({
+      severityLevel: 0, // info
+      msg: `PREL: ${reg.PREL.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[REL    ] Release  = ${reg.PREL.fields.REL}\n[STEP   ] Step     = ${reg.PREL.fields.STEP}\n[SUBSTEP] Substep  = ${reg.PREL.fields.SUBSTEP}\n[YEAR   ] Year     = ${reg.PREL.fields.YEAR}\n[MON    ] Month    = ${reg.PREL.fields.MON}\n[DAY    ] Day      = ${reg.PREL.fields.DAY}`
+    });
+  }
+
+  // === STAT: PRT Status Register =========================================
+  if ('STAT' in reg && reg.STAT.int32 !== undefined) {
+    const regValue = reg.STAT.int32;
+
+    // 0. Extend existing register structure
+    reg.STAT.fields = {};
+    reg.STAT.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of STAT register
+    reg.STAT.fields.LECI = getBits(regValue, 11, 8); // Last Error Code Index
+    reg.STAT.fields.TXEF = getBits(regValue, 7, 7); // TX Error Flag
+    reg.STAT.fields.RXEF = getBits(regValue, 6, 6); // RX Error Flag
+    reg.STAT.fields.RESI = getBits(regValue, 5, 5); // Reset Indicator
+    reg.STAT.fields.RBRS = getBits(regValue, 4, 4); // RAM Block Repair Status
+    reg.STAT.fields.TFQF = getBits(regValue, 3, 3); // TX FIFO/Queue Full
+    reg.STAT.fields.TEFN = getBits(regValue, 2, 2); // TX Event FIFO New Entry
+    reg.STAT.fields.TEFF = getBits(regValue, 1, 1); // TX Event FIFO Full
+    reg.STAT.fields.TEFL = getBits(regValue, 0, 0); // TX Event FIFO Element Lost
+
+    // 2. Generate human-readable register report
+    reg.STAT.report.push({
+      severityLevel: 0, // info
+      msg: `STAT: ${reg.STAT.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[LECI] Last Error Code Index        = ${reg.STAT.fields.LECI}\n[TXEF] TX Error Flag                 = ${reg.STAT.fields.TXEF}\n[RXEF] RX Error Flag                 = ${reg.STAT.fields.RXEF}\n[RESI] Reset Indicator               = ${reg.STAT.fields.RESI}\n[RBRS] RAM Block Repair Status       = ${reg.STAT.fields.RBRS}\n[TFQF] TX FIFO/Queue Full            = ${reg.STAT.fields.TFQF}\n[TEFN] TX Event FIFO New Entry       = ${reg.STAT.fields.TEFN}\n[TEFF] TX Event FIFO Full            = ${reg.STAT.fields.TEFF}\n[TEFL] TX Event FIFO Element Lost    = ${reg.STAT.fields.TEFL}`
+    });
+
+    // 3. Add status-specific warnings/errors
+    if (reg.STAT.fields.TXEF === 1) {
+      reg.STAT.report.push({
+        severityLevel: 2, // warning
+        msg: `TX Error Flag is set - check transmission errors`
+      });
+    }
+    if (reg.STAT.fields.RXEF === 1) {
+      reg.STAT.report.push({
+        severityLevel: 2, // warning
+        msg: `RX Error Flag is set - check reception errors`
+      });
+    }
+    if (reg.STAT.fields.TFQF === 1) {
+      reg.STAT.report.push({
+        severityLevel: 1, // recommendation
+        msg: `TX FIFO/Queue is full - consider increasing TX buffer size`
+      });
+    }
+  }
+
+  // === EVNT: Event Status Flags Register ================================
+  if ('EVNT' in reg && reg.EVNT.int32 !== undefined) {
+    const regValue = reg.EVNT.int32;
+
+    // 0. Extend existing register structure
+    reg.EVNT.fields = {};
+    reg.EVNT.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of EVNT register
+    reg.EVNT.fields.RXFI = getBits(regValue, 31, 31); // RX FIFO Interrupt
+    reg.EVNT.fields.TXFI = getBits(regValue, 30, 30); // TX FIFO Interrupt
+    reg.EVNT.fields.TEFI = getBits(regValue, 29, 29); // TX Event FIFO Interrupt
+    reg.EVNT.fields.HPMI = getBits(regValue, 28, 28); // High Priority Message Interrupt
+    reg.EVNT.fields.WKUI = getBits(regValue, 27, 27); // Wake Up Interrupt
+    reg.EVNT.fields.MRAF = getBits(regValue, 17, 17); // Message RAM Access Failure
+    reg.EVNT.fields.TSWE = getBits(regValue, 16, 16); // Timestamp Wraparound Event
+    reg.EVNT.fields.ELO = getBits(regValue, 15, 15); // Error Logging Overflow
+    reg.EVNT.fields.EP = getBits(regValue, 14, 14); // Error Passive
+    reg.EVNT.fields.EW = getBits(regValue, 13, 13); // Error Warning
+    reg.EVNT.fields.BO = getBits(regValue, 12, 12); // Bus Off
+    reg.EVNT.fields.WDI = getBits(regValue, 11, 11); // Watchdog Interrupt
+    reg.EVNT.fields.PEA = getBits(regValue, 10, 10); // Protocol Error in Arbitration Phase
+    reg.EVNT.fields.PED = getBits(regValue, 9, 9); // Protocol Error in Data Phase
+    reg.EVNT.fields.ARA = getBits(regValue, 8, 8); // Access to Reserved Address
+
+    // 2. Generate human-readable register report
+    reg.EVNT.report.push({
+      severityLevel: 0, // info
+      msg: `EVNT: ${reg.EVNT.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[RXFI] RX FIFO Interrupt             = ${reg.EVNT.fields.RXFI}\n[TXFI] TX FIFO Interrupt             = ${reg.EVNT.fields.TXFI}\n[TEFI] TX Event FIFO Interrupt       = ${reg.EVNT.fields.TEFI}\n[HPMI] High Priority Message Int     = ${reg.EVNT.fields.HPMI}\n[WKUI] Wake Up Interrupt             = ${reg.EVNT.fields.WKUI}\n[MRAF] Message RAM Access Failure    = ${reg.EVNT.fields.MRAF}\n[TSWE] Timestamp Wraparound Event    = ${reg.EVNT.fields.TSWE}\n[ELO ] Error Logging Overflow        = ${reg.EVNT.fields.ELO}\n[EP  ] Error Passive                 = ${reg.EVNT.fields.EP}\n[EW  ] Error Warning                 = ${reg.EVNT.fields.EW}\n[BO  ] Bus Off                       = ${reg.EVNT.fields.BO}\n[WDI ] Watchdog Interrupt            = ${reg.EVNT.fields.WDI}\n[PEA ] Protocol Error Arbitration    = ${reg.EVNT.fields.PEA}\n[PED ] Protocol Error Data Phase     = ${reg.EVNT.fields.PED}\n[ARA ] Access to Reserved Address    = ${reg.EVNT.fields.ARA}`
+    });
+
+    // 3. Add event-specific warnings/errors
+    if (reg.EVNT.fields.BO === 1) {
+      reg.EVNT.report.push({
+        severityLevel: 3, // error
+        msg: `Bus Off condition detected - CAN controller is offline`
+      });
+    }
+    if (reg.EVNT.fields.EP === 1) {
+      reg.EVNT.report.push({
+        severityLevel: 2, // warning
+        msg: `Error Passive state - high error rate detected`
+      });
+    }
+    if (reg.EVNT.fields.EW === 1) {
+      reg.EVNT.report.push({
+        severityLevel: 1, // recommendation
+        msg: `Error Warning state - monitor error counters`
+      });
+    }
+    if (reg.EVNT.fields.MRAF === 1) {
+      reg.EVNT.report.push({
+        severityLevel: 3, // error
+        msg: `Message RAM Access Failure detected`
+      });
+    }
+  }
+
+  // === LOCK: Unlock Sequence Register ===================================
+  if ('LOCK' in reg && reg.LOCK.int32 !== undefined) {
+    const regValue = reg.LOCK.int32;
+
+    // 0. Extend existing register structure
+    reg.LOCK.fields = {};
+    reg.LOCK.report = []; // Initialize report array
+
+    // 1. Decode LOCK register
+    reg.LOCK.fields.UNLOCK = regValue; // Unlock Value
+
+    // 2. Generate human-readable register report
+    reg.LOCK.report.push({
+      severityLevel: 0, // info
+      msg: `LOCK: ${reg.LOCK.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[UNLOCK] Unlock Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')}`
+    });
+  }
+
+  // === CTRL: Control Register ==========================================
+  if ('CTRL' in reg && reg.CTRL.int32 !== undefined) {
+    const regValue = reg.CTRL.int32;
+
+    // 0. Extend existing register structure
+    reg.CTRL.fields = {};
+    reg.CTRL.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of CTRL register
+    reg.CTRL.fields.NISO = getBits(regValue, 15, 15); // Non-ISO Operation
+    reg.CTRL.fields.TXP = getBits(regValue, 14, 14); // Transmit Pause
+    reg.CTRL.fields.EFBI = getBits(regValue, 13, 13); // Edge Filtering during Bus Integration
+    reg.CTRL.fields.PXHD = getBits(regValue, 12, 12); // Protocol Exception Handling Disable
+    reg.CTRL.fields.WMM = getBits(regValue, 11, 11); // Wide Message Marker
+    reg.CTRL.fields.UTSU = getBits(regValue, 10, 10); // Use Timestamping Unit
+    reg.CTRL.fields.BRSE = getBits(regValue, 9, 9); // Bit Rate Switch Enable
+    reg.CTRL.fields.LOM = getBits(regValue, 8, 8); // Loop Back Mode
+    reg.CTRL.fields.DAR = getBits(regValue, 7, 7); // Disable Automatic Retransmission
+    reg.CTRL.fields.CCE = getBits(regValue, 6, 6); // Configuration Change Enable
+    reg.CTRL.fields.TEST = getBits(regValue, 5, 5); // Test Mode Enable
+    reg.CTRL.fields.MON = getBits(regValue, 4, 4); // Bus Monitoring Mode
+    reg.CTRL.fields.CSR = getBits(regValue, 3, 3); // Clock Stop Request
+    reg.CTRL.fields.CSA = getBits(regValue, 2, 2); // Clock Stop Acknowledge
+    reg.CTRL.fields.ASM = getBits(regValue, 1, 1); // Restricted Operation Mode
+    reg.CTRL.fields.INIT = getBits(regValue, 0, 0); // Initialization
+
+    // 2. Generate human-readable register report
+    reg.CTRL.report.push({
+      severityLevel: 0, // info
+      msg: `CTRL: ${reg.CTRL.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[NISO] Non-ISO Operation             = ${reg.CTRL.fields.NISO}\n[TXP ] Transmit Pause                = ${reg.CTRL.fields.TXP}\n[EFBI] Edge Filtering Bus Integration = ${reg.CTRL.fields.EFBI}\n[PXHD] Protocol Exception Disable    = ${reg.CTRL.fields.PXHD}\n[WMM ] Wide Message Marker           = ${reg.CTRL.fields.WMM}\n[UTSU] Use Timestamping Unit         = ${reg.CTRL.fields.UTSU}\n[BRSE] Bit Rate Switch Enable        = ${reg.CTRL.fields.BRSE}\n[LOM ] Loop Back Mode                = ${reg.CTRL.fields.LOM}\n[DAR ] Disable Auto Retransmission   = ${reg.CTRL.fields.DAR}\n[CCE ] Configuration Change Enable   = ${reg.CTRL.fields.CCE}\n[TEST] Test Mode Enable              = ${reg.CTRL.fields.TEST}\n[MON ] Bus Monitoring Mode           = ${reg.CTRL.fields.MON}\n[CSR ] Clock Stop Request            = ${reg.CTRL.fields.CSR}\n[CSA ] Clock Stop Acknowledge        = ${reg.CTRL.fields.CSA}\n[ASM ] Restricted Operation Mode     = ${reg.CTRL.fields.ASM}\n[INIT] Initialization                = ${reg.CTRL.fields.INIT}`
+    });
+
+    // 3. Add control-specific information
+    if (reg.CTRL.fields.INIT === 1) {
+      reg.CTRL.report.push({
+        severityLevel: 1, // recommendation
+        msg: `Controller is in Initialization mode - switch to Normal mode for operation`
+      });
+    }
+    if (reg.CTRL.fields.MON === 1) {
+      reg.CTRL.report.push({
+        severityLevel: 0, // info
+        msg: `Bus Monitoring Mode is active - controller will not transmit`
+      });
+    }
+  }
+
+  // === FIMC: Fault Injection Module Control Register ===================
+  if ('FIMC' in reg && reg.FIMC.int32 !== undefined) {
+    const regValue = reg.FIMC.int32;
+
+    // 0. Extend existing register structure
+    reg.FIMC.fields = {};
+    reg.FIMC.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of FIMC register
+    reg.FIMC.fields.FIME = getBits(regValue, 31, 31); // Fault Injection Module Enable
+    reg.FIMC.fields.FIMS = getBits(regValue, 30, 29); // Fault Injection Module Select
+    reg.FIMC.fields.FIMF = getBits(regValue, 28, 24); // Fault Injection Module Function
+    reg.FIMC.fields.FIMP = getBits(regValue, 23, 16); // Fault Injection Module Parameter
+    reg.FIMC.fields.FIMV = getBits(regValue, 15, 0); // Fault Injection Module Value
+
+    // 2. Generate human-readable register report
+    reg.FIMC.report.push({
+      severityLevel: 0, // info
+      msg: `FIMC: ${reg.FIMC.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[FIME] Fault Injection Enable        = ${reg.FIMC.fields.FIME}\n[FIMS] Fault Injection Module Select = ${reg.FIMC.fields.FIMS}\n[FIMF] Fault Injection Function      = ${reg.FIMC.fields.FIMF}\n[FIMP] Fault Injection Parameter     = ${reg.FIMC.fields.FIMP}\n[FIMV] Fault Injection Value         = ${reg.FIMC.fields.FIMV}`
+    });
+
+    // 3. Add fault injection warnings
+    if (reg.FIMC.fields.FIME === 1) {
+      reg.FIMC.report.push({
+        severityLevel: 2, // warning
+        msg: `Fault Injection Module is enabled - this should only be used for testing`
+      });
+    }
+  }
+
+  // === TEST: Hardware Test Functions Register ========================
+  if ('TEST' in reg && reg.TEST.int32 !== undefined) {
+    const regValue = reg.TEST.int32;
+
+    // 0. Extend existing register structure
+    reg.TEST.fields = {};
+    reg.TEST.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of TEST register
+    reg.TEST.fields.SVAL = getBits(regValue, 21, 21); // Start Value
+    reg.TEST.fields.TXBNS = getBits(regValue, 20, 16); // TX Buffer Number Select
+    reg.TEST.fields.PVAL = getBits(regValue, 15, 15); // Prepend Value
+    reg.TEST.fields.TXBNP = getBits(regValue, 14, 10); // TX Buffer Number Prepend
+    reg.TEST.fields.RX = getBits(regValue, 7, 7); // Receive Pin
+    reg.TEST.fields.TX = getBits(regValue, 6, 5); // TX Pin Control
+    reg.TEST.fields.LBCK = getBits(regValue, 4, 4); // Loop Back Mode
+    reg.TEST.fields.SILENT = getBits(regValue, 3, 3); // Silent Mode
+    reg.TEST.fields.BASIC = getBits(regValue, 2, 2); // Basic Mode
+
+    // 2. Generate human-readable register report
+    reg.TEST.report.push({
+      severityLevel: 0, // info
+      msg: `TEST: ${reg.TEST.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[SVAL ] Start Value               = ${reg.TEST.fields.SVAL}\n[TXBNS] TX Buffer Number Select   = ${reg.TEST.fields.TXBNS}\n[PVAL ] Prepend Value             = ${reg.TEST.fields.PVAL}\n[TXBNP] TX Buffer Number Prepend  = ${reg.TEST.fields.TXBNP}\n[RX   ] Receive Pin               = ${reg.TEST.fields.RX}\n[TX   ] TX Pin Control            = ${reg.TEST.fields.TX}\n[LBCK ] Loop Back Mode            = ${reg.TEST.fields.LBCK}\n[SILENT] Silent Mode              = ${reg.TEST.fields.SILENT}\n[BASIC] Basic Mode                = ${reg.TEST.fields.BASIC}`
+    });
+
+    // 3. Add test mode information
+    if (reg.TEST.fields.LBCK === 1) {
+      reg.TEST.report.push({
+        severityLevel: 1, // recommendation
+        msg: `Loop Back Mode is active - for testing only`
+      });
+    }
+    if (reg.TEST.fields.SILENT === 1) {
+      reg.TEST.report.push({
+        severityLevel: 1, // recommendation
+        msg: `Silent Mode is active - controller will not transmit dominant bits`
+      });
+    }
+  }
 
 }
