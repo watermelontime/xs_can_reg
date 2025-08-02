@@ -90,8 +90,8 @@ function mapRawRegistersToNames(reg) {
 
 // ===================================================================================
 // Process Nominal Bit Timing Register: Extract parameters, validate ranges, calculate results, generate report
-export function procRegsPrtBitTiming(reg) {
-  
+function procRegsPrtBitTiming(reg) {
+
   // Initialize bit timing structure in reg.general
   if (!reg.general.bt_global) {
     reg.general.bt_global = { set: {}, res: {} };
@@ -486,14 +486,12 @@ export function procRegsPrtBitTiming(reg) {
       }
 
     } // end if XLOE || XLTR
-
   } // end if PCFG
-
 }
 
 // ===================================================================================
 // Process Other PRT Registers: Extract parameters, validate ranges, generate report
-export function procRegsPrtOther(reg) {
+function procRegsPrtOther(reg) {
 
   // === ENDN: Endianness Test Register ====================================
   if ('ENDN' in reg && reg.ENDN.int32 !== undefined) {
@@ -514,7 +512,7 @@ export function procRegsPrtOther(reg) {
       });
     } else {
       reg.ENDN.report.push({
-        severityLevel: 2, // warning
+        severityLevel: 3, // error
         msg: `ENDN: ${reg.ENDN.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[ETV] Endianness Test Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')} (Expected: 0x87654321)`
       });
     }
@@ -530,16 +528,22 @@ export function procRegsPrtOther(reg) {
 
     // 1. Decode all individual bits of PREL register
     reg.PREL.fields.REL = getBits(regValue, 31, 28); // Release
-    reg.PREL.fields.STEP = getBits(regValue, 27, 20); // Step
-    reg.PREL.fields.SUBSTEP = getBits(regValue, 19, 16); // Substep
-    reg.PREL.fields.YEAR = getBits(regValue, 15, 12); // Year
-    reg.PREL.fields.MON = getBits(regValue, 11, 8); // Month
+    reg.PREL.fields.STEP = getBits(regValue, 27, 24); // Step
+    reg.PREL.fields.SUBSTEP = getBits(regValue, 23, 20); // Substep
+    reg.PREL.fields.YEAR = getBits(regValue, 19, 16); // Year
+    reg.PREL.fields.MON = getBits(regValue, 15, 8); // Month
     reg.PREL.fields.DAY = getBits(regValue, 7, 0); // Day
 
     // 2. Generate human-readable register report
     reg.PREL.report.push({
       severityLevel: 0, // info
       msg: `PREL: ${reg.PREL.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[REL    ] Release  = ${reg.PREL.fields.REL}\n[STEP   ] Step     = ${reg.PREL.fields.STEP}\n[SUBSTEP] Substep  = ${reg.PREL.fields.SUBSTEP}\n[YEAR   ] Year     = ${reg.PREL.fields.YEAR}\n[MON    ] Month    = ${reg.PREL.fields.MON}\n[DAY    ] Day      = ${reg.PREL.fields.DAY}`
+    });
+
+    // Generate Version Report
+    reg.PREL.report.push({
+      severityLevel: 0, // info
+      msg: `PREL: X_CAN V${reg.PREL.fields.REL.toString(16).toUpperCase()}.${reg.PREL.fields.STEP.toString(16).toUpperCase()}.${reg.PREL.fields.SUBSTEP.toString(16).toUpperCase()}, Date ${reg.PREL.fields.DAY.toString(16).toUpperCase().padStart(2, '0')}.${reg.PREL.fields.MON.toString(16).toUpperCase().padStart(2, '0')}.${reg.PREL.fields.YEAR.toString(16).toUpperCase().padStart(2, '0')}`
     });
   }
 
@@ -552,43 +556,51 @@ export function procRegsPrtOther(reg) {
     reg.STAT.report = []; // Initialize report array
 
     // 1. Decode all individual bits of STAT register
-    reg.STAT.fields.LECI = getBits(regValue, 11, 8); // Last Error Code Index
-    reg.STAT.fields.TXEF = getBits(regValue, 7, 7); // TX Error Flag
-    reg.STAT.fields.RXEF = getBits(regValue, 6, 6); // RX Error Flag
-    reg.STAT.fields.RESI = getBits(regValue, 5, 5); // Reset Indicator
-    reg.STAT.fields.RBRS = getBits(regValue, 4, 4); // RAM Block Repair Status
-    reg.STAT.fields.TFQF = getBits(regValue, 3, 3); // TX FIFO/Queue Full
-    reg.STAT.fields.TEFN = getBits(regValue, 2, 2); // TX Event FIFO New Entry
-    reg.STAT.fields.TEFF = getBits(regValue, 1, 1); // TX Event FIFO Full
-    reg.STAT.fields.TEFL = getBits(regValue, 0, 0); // TX Event FIFO Element Lost
+    reg.STAT.fields.ACT  = getBits(regValue, 1, 0);   // Activity (00: inactive, 01: idle, 10: receiver, 11: transmitter)
+    reg.STAT.fields.INT  = getBits(regValue, 2, 2);   // Integrating (1: integrating into bus communication)
+    reg.STAT.fields.STP  = getBits(regValue, 3, 3);   // Stop (1: Waiting for End of current frame TX/RX)
+    reg.STAT.fields.CLKA = getBits(regValue, 4, 4);   // CLOCK_ACTIVE (1: active)
+    reg.STAT.fields.FIMA = getBits(regValue, 5, 5);   // Fault Injection Mode Active
+    reg.STAT.fields.EP   = getBits(regValue, 6, 6);   // Error Passive State
+    reg.STAT.fields.BO   = getBits(regValue, 7, 7);   // Bus Off State
+    reg.STAT.fields.TDCV = getBits(regValue, 15, 8);  // TDC Value
+    reg.STAT.fields.REC  = getBits(regValue, 22, 16); // Receive Error Counter
+    reg.STAT.fields.RP   = getBits(regValue, 23, 23); // Receive Error Counter Carry Flag
+    reg.STAT.fields.TEC  = getBits(regValue, 31, 24); // Transmit Error Counter
 
     // 2. Generate human-readable register report
     reg.STAT.report.push({
       severityLevel: 0, // info
-      msg: `STAT: ${reg.STAT.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[LECI] Last Error Code Index        = ${reg.STAT.fields.LECI}\n[TXEF] TX Error Flag                 = ${reg.STAT.fields.TXEF}\n[RXEF] RX Error Flag                 = ${reg.STAT.fields.RXEF}\n[RESI] Reset Indicator               = ${reg.STAT.fields.RESI}\n[RBRS] RAM Block Repair Status       = ${reg.STAT.fields.RBRS}\n[TFQF] TX FIFO/Queue Full            = ${reg.STAT.fields.TFQF}\n[TEFN] TX Event FIFO New Entry       = ${reg.STAT.fields.TEFN}\n[TEFF] TX Event FIFO Full            = ${reg.STAT.fields.TEFF}\n[TEFL] TX Event FIFO Element Lost    = ${reg.STAT.fields.TEFL}`
+      msg: `STAT: ${reg.STAT.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[ACT ] Activity                     = ${reg.STAT.fields.ACT} (0: inactive, 1: idle, 2: receiver, 3: transmitter))\n[INT ] Integrating                  = ${reg.STAT.fields.INT}\n[STP ] Stop                         = ${reg.STAT.fields.STP}\n[CLKA] Clock Active                 = ${reg.STAT.fields.CLKA}\n[FIMA] Fault Injection Mode Active  = ${reg.STAT.fields.FIMA}\n[EP  ] Error Passive State          = ${reg.STAT.fields.EP}\n[BO  ] Bus Off State                = ${reg.STAT.fields.BO}\n[TDCV] Transmitter Delay Comp Value = ${reg.STAT.fields.TDCV}\n[REC ] Receive Error Counter        = ${reg.STAT.fields.REC}\n[RP  ] RX Error Counter Carry Flag  = ${reg.STAT.fields.RP}\n[TEC ] Transmit Error Counter       = ${reg.STAT.fields.TEC}`
     });
 
     // 3. Add status-specific warnings/errors
-    if (reg.STAT.fields.TXEF === 1) {
+    if (reg.STAT.fields.BO === 1) {
       reg.STAT.report.push({
         severityLevel: 2, // warning
-        msg: `TX Error Flag is set - check transmission errors`
+        msg: `CAN controller is in Bus Off state`
       });
     }
-    if (reg.STAT.fields.RXEF === 1) {
+    if (reg.STAT.fields.EP === 1) {
       reg.STAT.report.push({
         severityLevel: 2, // warning
-        msg: `RX Error Flag is set - check reception errors`
+        msg: `CAN controller is in Error Passive state`
       });
     }
-    if (reg.STAT.fields.TFQF === 1) {
+    if (reg.STAT.fields.TEC > 0) {
       reg.STAT.report.push({
-        severityLevel: 1, // recommendation
-        msg: `TX FIFO/Queue is full - consider increasing TX buffer size`
+        severityLevel: 2, // warning
+        msg: `Transmit Error Counter > 0. Errors seen recently on CAN bus.`
+      });
+    }
+    if (reg.STAT.fields.REC > 96) {
+      reg.STAT.report.push({
+        severityLevel: 2, // warning
+        msg: `Receive Error Counter > 0. Errors seen recently on CAN bus.`
       });
     }
   }
-
+// TODO AB HIER
   // === EVNT: Event Status Flags Register ================================
   if ('EVNT' in reg && reg.EVNT.int32 !== undefined) {
     const regValue = reg.EVNT.int32;
