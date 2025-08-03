@@ -424,7 +424,11 @@ function displaySVGs(reg) {
 
   // DATA FD
   // check if all input parameters are defined for calling drawBitTiming()
-  if (reg.general && reg.general.bt_fddata && reg.general.bt_fddata.set && reg.general.bt_fddata.res &&
+  if (reg.general &&
+      reg.general.bt_global && reg.general.bt_global.set &&
+      reg.general.bt_global.set.fd !== undefined && reg.general.bt_global.set.fd === true &&
+      // parameters for drawing
+      reg.general.bt_fddata && reg.general.bt_fddata.set && reg.general.bt_fddata.res &&
       reg.general.bt_global && reg.general.bt_global.set &&
       reg.general.bt_fddata.set.prop_and_phaseseg1 !== undefined &&
       reg.general.bt_fddata.set.phaseseg2 !== undefined &&
@@ -448,13 +452,17 @@ function displaySVGs(reg) {
     draw_svg.drawErrorMessage(
       'DrawingBTFDdata',
       'FD Data Phase',
-      'Missing parameters'
+      'Missing parameters or ES=OFF or TMS=ON'
     );
   }
 
   // DATA XL
   // check if all input parameters are defined for calling drawBitTiming()
-  if (reg.general && reg.general.bt_xldata && reg.general.bt_xldata.set && reg.general.bt_xldata.res &&
+  if (reg.general &&
+      reg.general.bt_global && reg.general.bt_global.set &&
+      reg.general.bt_global.set.xl !== undefined && reg.general.bt_global.set.xl === true &&
+      // parameters for drawing
+      reg.general.bt_xldata && reg.general.bt_xldata.set && reg.general.bt_xldata.res &&
       reg.general.bt_global && reg.general.bt_global.set &&
       reg.general.bt_xldata.set.prop_and_phaseseg1 !== undefined &&
       reg.general.bt_xldata.set.phaseseg2 !== undefined &&
@@ -539,7 +547,10 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
   }
 
   // Assign bit timing parameters from FD data phase
-  if (reg.general.bt_fddata && reg.general.bt_fddata.set) {
+  if (reg.general.bt_fddata && reg.general.bt_fddata.set &&
+      reg.general.bt_global && reg.general.bt_global.set &&
+      reg.general.bt_global.set.fd !== undefined && reg.general.bt_global.set.fd === true)
+    {
     paramsHtml['par_brp_datfd'] = reg.general.bt_fddata.set.brp !== undefined ? reg.general.bt_fddata.set.brp : 'no reg';
     paramsHtml['par_prop_and_phaseseg1_datfd'] = reg.general.bt_fddata.set.prop_and_phaseseg1 !== undefined ? reg.general.bt_fddata.set.prop_and_phaseseg1 : 'no reg';
     paramsHtml['par_phaseseg2_datfd'] = reg.general.bt_fddata.set.phaseseg2 !== undefined ? reg.general.bt_fddata.set.phaseseg2 : 'no reg';
@@ -564,7 +575,10 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
   }
 
   // Assign bit timing parameters from XL data phase
-  if (reg.general.bt_xldata && reg.general.bt_xldata.set) {
+  if (reg.general.bt_xldata && reg.general.bt_xldata.set &&
+      reg.general.bt_global && reg.general.bt_global.set &&
+      reg.general.bt_global.set.xl !== undefined && reg.general.bt_global.set.xl === true )
+    {
     paramsHtml['par_brp_datxl'] = reg.general.bt_xldata.set.brp !== undefined ? reg.general.bt_xldata.set.brp : 'no reg';
     paramsHtml['par_prop_and_phaseseg1_datxl'] = reg.general.bt_xldata.set.prop_and_phaseseg1 !== undefined ? reg.general.bt_xldata.set.prop_and_phaseseg1 : 'no reg';
     paramsHtml['par_phaseseg2_datxl'] = reg.general.bt_xldata.set.phaseseg2 !== undefined ? reg.general.bt_xldata.set.phaseseg2 : 'no reg';
@@ -621,7 +635,10 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
   } 
 
   // Assign bit timing results from FD data phase
-  if (reg.general.bt_fddata && reg.general.bt_fddata.res) {
+  if (reg.general.bt_fddata && reg.general.bt_fddata.res &&
+      reg.general.bt_global && reg.general.bt_global.set &&
+      reg.general.bt_global.set.fd !== undefined && reg.general.bt_global.set.fd === true)
+  {
     resultsHtml['res_bitrate_datfd'] = reg.general.bt_fddata.res.bitrate !== undefined ? reg.general.bt_fddata.res.bitrate : 'no reg';
     resultsHtml['res_sp_datfd'] = reg.general.bt_fddata.res.sp !== undefined ? reg.general.bt_fddata.res.sp : 'no reg';
     resultsHtml['res_ssp_datfd'] = reg.general.bt_fddata.res.ssp !== undefined ? reg.general.bt_fddata.res.ssp : 'no reg';
@@ -639,7 +656,10 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
   } 
 
   // Assign bit timing results from XL data phase
-  if (reg.general.bt_xldata && reg.general.bt_xldata.res) {
+  if (reg.general.bt_xldata && reg.general.bt_xldata.res &&
+      reg.general.bt_global && reg.general.bt_global.set &&
+      reg.general.bt_global.set.xl !== undefined && reg.general.bt_global.set.xl === true)
+  {
     resultsHtml['res_bitrate_datxl'] = reg.general.bt_xldata.res.bitrate !== undefined ? reg.general.bt_xldata.res.bitrate : 'no reg';
     resultsHtml['res_sp_datxl'] = reg.general.bt_xldata.res.sp !== undefined ? reg.general.bt_xldata.res.sp : 'no reg';
     resultsHtml['res_ssp_datxl'] = reg.general.bt_xldata.res.ssp !== undefined ? reg.general.bt_xldata.res.ssp : 'no reg';

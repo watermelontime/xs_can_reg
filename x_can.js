@@ -141,6 +141,8 @@ function procRegsPrtBitTiming(reg) {
     reg.general.bt_global.set.tms = (reg.MODE.fields.XLTR === 1);
     reg.general.bt_global.set.tdc = (reg.MODE.fields.TDCE === 1);
     reg.general.bt_global.set.es  = (reg.MODE.fields.EFDI === 0); // Error Signaling Enable when EFDI=0
+    reg.general.bt_global.set.fd  = (reg.MODE.fields.FDOE === 1 && reg.general.bt_global.set.es === true && reg.general.bt_global.set.tms === false); // FD Operation Enable when FDOE=1
+    reg.general.bt_global.set.xl  = (reg.MODE.fields.XLOE === 1); // XL Operation Enable when XLOE=1
 
     // 3. Generate human-readable register report
     reg.MODE.report.push({
@@ -161,6 +163,22 @@ function procRegsPrtBitTiming(reg) {
              `[XLOE] XL Operation Enable                          = ${reg.MODE.fields.XLOE}\n` +
              `[FDOE] FD Operation Enable                          = ${reg.MODE.fields.FDOE}`
     });
+
+    // Check: FDOE is set when XLOE is also set
+    if (reg.MODE.fields.FDOE === 0 && reg.MODE.fields.XLOE === 1) {
+      reg.MODE.report.push({
+        severityLevel: 3, // error
+        msg: `MODE: FDOE (${reg.MODE.fields.FDOE}) is not set when XLOE (${reg.MODE.fields.XLOE}) is set. FDOE must be set to 1 when XLOE is set to 1.`
+      });
+    }
+
+    // Check: TMS=1 while ES=0
+    if (reg.MODE.fields.XLTR === 1 && reg.MODE.fields.EFDI === 0) {
+      reg.MODE.report.push({
+        severityLevel: 3, // error
+        msg: `MODE: TMS=ON while ES=OFF. This is not supported by X_CAN. XLTR (${reg.MODE.fields.XLTR}), EFDI (${reg.MODE.fields.EFDI})`
+      });
+    }
   }
 
   // === NBTP: Extract parameters from register ==========================
@@ -265,16 +283,16 @@ function procRegsPrtBitTiming(reg) {
     // set brp (as a copy of arb)
     reg.general.bt_fddata.set.brp = reg.general.bt_arb.set.brp !== undefined ? reg.general.bt_arb.set.brp : 0; // X_CAN uses same BRP as in arbitration phase
 
-    // different output based on FDOE
-    if (!reg.MODE || !reg.MODE.fields || reg.MODE.fields.FDOE == 0) {
+    // different output based on FD enabled yes/no
+    if (reg.general.bt_global.set.fd !== undefined && reg.general.bt_global.set.fd === false) {
       // 3. Generate human-readable register report
       reg.DBTP.report.push({
         severityLevel: 2, // warning
         msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-             `FD Operation is disabled (MODE.FDOE=0) OR MODE register not present`
+             `FD Operation is disabled: a) MODE.FDOE=0 OR b) TMS=ON or ES=OFF OR c) MODE register not present`
       });
 
-    } else { // MODE.FDOE == 1 OR MODE register not present
+    } else { // FD enabled (or MODE register not present)
       // 3. Generate human-readable register report
       reg.DBTP.report.push({
           severityLevel: 0, // info
@@ -375,8 +393,8 @@ function procRegsPrtBitTiming(reg) {
     // set brp (as a copy of arb)
     reg.general.bt_xldata.set.brp = reg.general.bt_arb.set.brp !== undefined ? reg.general.bt_arb.set.brp : 0; // X_CAN uses same BRP as in arbitration phase
 
-    // different output based on XLOE
-    if (!reg.MODE || !reg.MODE.fields || reg.MODE.fields.XLOE == 0) {
+    // different output based on XL enabled yes/no
+    if (reg.general.bt_global.set.xl !== undefined && reg.general.bt_global.set.xl === false) {
       // 3. Generate human-readable register report
       reg.XBTP.report.push({
         severityLevel: 2, // warning
@@ -384,7 +402,7 @@ function procRegsPrtBitTiming(reg) {
              `XL Operation is disabled (MODE.XLOE=0) OR MODE register not present`
       });
 
-    } else { // MODE.XLOE == 1
+    } else { // XL enabled (or MODE register not present)
       // 3. Generate human-readable register report
       reg.XBTP.report.push({
           severityLevel: 0, // info
