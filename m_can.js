@@ -79,21 +79,55 @@ function mapRawRegistersToNames(reg) {
     return;
   }
   
-  // Address to register name mapping based on x_can_prt.txt
+  // Address to register name mapping based on M_CAN specification
   const addressMap = {
-    0x00: { shortName: 'ENDN', longName: 'Endianness Test Register' },
-    0x04: { shortName: 'PREL', longName: 'PRT Release Identification Register' },
-    0x08: { shortName: 'STAT', longName: 'PRT Status Register' },
-    0x20: { shortName: 'EVNT', longName: 'Event Status Flags Register' },
-    0x40: { shortName: 'LOCK', longName: 'Unlock Sequence Register' },
-    0x44: { shortName: 'CTRL', longName: 'Control Register' },
-    0x48: { shortName: 'FIMC', longName: 'Fault Injection Module Control Register' },
-    0x4C: { shortName: 'TEST', longName: 'Hardware Test functions Register' },
-    0x60: { shortName: 'MODE', longName: 'Operating Mode Register' },
-    0x64: { shortName: 'NBTP', longName: 'Arbitration Phase Nominal Bit Timing Register' },
-    0x68: { shortName: 'DBTP', longName: 'CAN FD Data Phase Bit Timing Register' },
-    0x6C: { shortName: 'XBTP', longName: 'XAN XL Data Phase Bit Timing Register' },
-    0x70: { shortName: 'PCFG', longName: 'PWME Configuration Register' }
+    0x000: { shortName: 'CREL', longName: 'Core Release Register' },
+    0x004: { shortName: 'ENDN', longName: 'Endian Register' },
+    0x008: { shortName: 'CUST', longName: 'Customer Register' },
+    0x00C: { shortName: 'DBTP', longName: 'Data Bit Timing & Prescaler Register' },
+    0x010: { shortName: 'TEST', longName: 'Test Register' },
+    0x014: { shortName: 'RWD', longName: 'RAM Watchdog' },
+    0x018: { shortName: 'CCCR', longName: 'CC Control Register' },
+    0x01C: { shortName: 'NBTP', longName: 'Nominal Bit Timing & Prescaler Register' },
+    0x020: { shortName: 'TSCC', longName: 'Timestamp Counter Configuration' },
+    0x024: { shortName: 'TSCV', longName: 'Timestamp Counter Value' },
+    0x028: { shortName: 'TOCC', longName: 'Timeout Counter Configuration' },
+    0x02C: { shortName: 'TOCV', longName: 'Timeout Counter Value' },
+    0x040: { shortName: 'ECR', longName: 'Error Counter Register' },
+    0x044: { shortName: 'PSR', longName: 'Protocol Status Register' },
+    0x048: { shortName: 'TDCR', longName: 'Transmitter Delay Compensation Register' },
+    0x050: { shortName: 'IR', longName: 'Interrupt Register' },
+    0x054: { shortName: 'IE', longName: 'Interrupt Enable' },
+    0x058: { shortName: 'ILS', longName: 'Interrupt Line Select' },
+    0x05C: { shortName: 'ILE', longName: 'Interrupt Line Enable' },
+    0x080: { shortName: 'GFC', longName: 'Global Filter Configuration' },
+    0x084: { shortName: 'SIDFC', longName: 'Standard ID Filter Configuration' },
+    0x088: { shortName: 'XIDFC', longName: 'Extended ID Filter Configuration' },
+    0x090: { shortName: 'XIDAM', longName: 'Extended ID AND Mask' },
+    0x094: { shortName: 'HPMS', longName: 'High Priority Message Status' },
+    0x098: { shortName: 'NDAT1', longName: 'New Data 1' },
+    0x09C: { shortName: 'NDAT2', longName: 'New Data 2' },
+    0x0A0: { shortName: 'RXF0C', longName: 'Rx FIFO 0 Configuration' },
+    0x0A4: { shortName: 'RXF0S', longName: 'Rx FIFO 0 Status' },
+    0x0A8: { shortName: 'RXF0A', longName: 'Rx FIFO 0 Acknowledge' },
+    0x0AC: { shortName: 'RXBC', longName: 'Rx Buffer Configuration' },
+    0x0B0: { shortName: 'RXF1C', longName: 'Rx FIFO 1 Configuration' },
+    0x0B4: { shortName: 'RXF1S', longName: 'Rx FIFO 1 Status' },
+    0x0B8: { shortName: 'RXF1A', longName: 'Rx FIFO 1 Acknowledge' },
+    0x0BC: { shortName: 'RXESC', longName: 'Rx Buffer / FIFO Element Size Configuration' },
+    0x0C0: { shortName: 'TXBC', longName: 'Tx Buffer Configuration' },
+    0x0C4: { shortName: 'TXFQS', longName: 'Tx FIFO/Queue Status' },
+    0x0C8: { shortName: 'TXESC', longName: 'Tx Buffer Element Size Configuration' },
+    0x0CC: { shortName: 'TXBRP', longName: 'Tx Buffer Request Pending' },
+    0x0D0: { shortName: 'TXBAR', longName: 'Tx Buffer Add Request' },
+    0x0D4: { shortName: 'TXBCR', longName: 'Tx Buffer Cancellation Request' },
+    0x0D8: { shortName: 'TXBTO', longName: 'Tx Buffer Transmission Occurred' },
+    0x0DC: { shortName: 'TXBCF', longName: 'Tx Buffer Cancellation Finished' },
+    0x0E0: { shortName: 'TXBTIE', longName: 'Tx Buffer Transmission Interrupt Enable' },
+    0x0E4: { shortName: 'TXBCIE', longName: 'Tx Buffer Cancellation Finished Interrupt Enable' },
+    0x0F0: { shortName: 'TXEFC', longName: 'Tx Event FIFO Configuration' },
+    0x0F4: { shortName: 'TXEFS', longName: 'Tx Event FIFO Status' },
+    0x0F8: { shortName: 'TXEFA', longName: 'Tx Event FIFO Acknowledge' }
   };
   
   let mappedCount = 0;
@@ -155,79 +189,90 @@ function procRegsPrtBitTiming(reg) {
   if (!reg.general.bt_fddata) {
     reg.general.bt_fddata = { set: {}, res: {} };
   }
-  // Initialize bit timing structure in reg.general
-  if (!reg.general.bt_xldata) {
-    reg.general.bt_xldata = { set: {}, res: {} };
-  }
 
   // Rule: only assign reg.general.* values if they get meaningful values
   //       leave values undefined, if a) according registers are not present
   //                                  b) configuration disables a feature (e.g. TMS=OFF => then do not provide PWM settings & results)
 
-  // === MODE: Extract parameters from register ==========================
-  if ('MODE' in reg && reg.MODE.int32 !== undefined) {
-    const regValue = reg.MODE.int32;
+  // === CCCR: Extract parameters from register ==========================
+  if ('CCCR' in reg && reg.CCCR.int32 !== undefined) {
+    const regValue = reg.CCCR.int32;
 
     // 0. Extend existing register structure
-    reg.MODE.fields = {};
-    reg.MODE.report = []; // Initialize report array
+    reg.CCCR.fields = {};
+    reg.CCCR.report = []; // Initialize report array
 
-    // 1. Decode all individual bits of MODE register
-    reg.MODE.fields.TSSE = getBits(regValue, 13, 13);  // Transceiver Sharing Switch Enable
-    reg.MODE.fields.LCHB = getBits(regValue, 12, 12);  // Light Commander High Bit Rate
-    reg.MODE.fields.FIME = getBits(regValue, 11, 11);  // Fault Injection Module Enable
-    reg.MODE.fields.EFDI = getBits(regValue, 10, 10);  // Error Flag/Frame Dissable
-    reg.MODE.fields.XLTR = getBits(regValue, 9, 9);    // TMS Enable (XL Transceiver present)
-    reg.MODE.fields.SFS  = getBits(regValue, 8, 8);    // Time Stamp Position: Start of Frame (1), End of Frame (0)
-    reg.MODE.fields.RSTR = getBits(regValue, 7, 7);    // Restircted Mode Enable
-    reg.MODE.fields.MON  = getBits(regValue, 6, 6);    // (Bus) Monitoring Mode Enable
-    reg.MODE.fields.TXP  = getBits(regValue, 5, 5);    // TX Pause
-    reg.MODE.fields.EFBI = getBits(regValue, 4, 4);    // Edge Filtering during Bus Integration
-    reg.MODE.fields.PXHD = getBits(regValue, 3, 3);    // Protocol Exception Handling Disable
-    reg.MODE.fields.TDCE = getBits(regValue, 2, 2);    // TDC: Transmitter Delay Compensation Enable
-    reg.MODE.fields.XLOE = getBits(regValue, 1, 1);    // XL Operation Enable
-    reg.MODE.fields.FDOE = getBits(regValue, 0, 0);    // FD Operation Enable
+    // 1. Decode all individual bits of CCCR register (M_CAN CC Control Register)
+    reg.CCCR.fields.NISO = getBits(regValue, 15, 15);  // Non ISO Operation
+    reg.CCCR.fields.TXP  = getBits(regValue, 14, 14);  // Transmit Pause
+    reg.CCCR.fields.EFBI = getBits(regValue, 13, 13);  // Edge Filtering during Bus Integration
+    reg.CCCR.fields.PXHD = getBits(regValue, 12, 12);  // Protocol Exception Handling Disable
+    reg.CCCR.fields.BRSE = getBits(regValue, 9, 9);    // Bit Rate Switch Enable
+    reg.CCCR.fields.FDOE = getBits(regValue, 8, 8);    // FD Operation Enable
+    reg.CCCR.fields.TEST = getBits(regValue, 7, 7);    // Test Mode Enable
+    reg.CCCR.fields.DAR  = getBits(regValue, 6, 6);    // Disable Automatic Retransmission
+    reg.CCCR.fields.MON  = getBits(regValue, 5, 5);    // Bus Monitoring Mode
+    reg.CCCR.fields.CSR  = getBits(regValue, 4, 4);    // Clock Stop Request
+    reg.CCCR.fields.CSA  = getBits(regValue, 3, 3);    // Clock Stop Acknowledge
+    reg.CCCR.fields.ASM  = getBits(regValue, 2, 2);    // Restricted Operation Mode
+    reg.CCCR.fields.CCE  = getBits(regValue, 1, 1);    // Configuration Change Enable
+    reg.CCCR.fields.INIT = getBits(regValue, 0, 0);    // Initialization
     
-    // 2. Store MODE-related bit timing settings in general structure
-    reg.general.bt_global.set.tms = (reg.MODE.fields.XLTR === 1);
-    reg.general.bt_global.set.tdc = (reg.MODE.fields.TDCE === 1);
-    reg.general.bt_global.set.es  = (reg.MODE.fields.EFDI === 0); // Error Signaling Enable when EFDI=0
-    reg.general.bt_global.set.fd  = (reg.MODE.fields.FDOE === 1 && reg.general.bt_global.set.es === true && reg.general.bt_global.set.tms === false); // FD Operation Enable when FDOE=1
-    reg.general.bt_global.set.xl  = (reg.MODE.fields.XLOE === 1); // XL Operation Enable when XLOE=1
+    // 2. Store CCCR-related bit timing settings in general structure
+    reg.general.bt_global.set.fd  = (reg.CCCR.fields.FDOE === 1); // FD Operation Enable when FDOE=1
+    reg.general.bt_global.set.es  = true;  // Error signaling always enabled in standard M_CAN
+    reg.general.bt_global.set.tms = false; // No TMS (Transceiver Mode Switching) in standard M_CAN
+    reg.general.bt_global.set.xl  = false; // No XL support in standard M_CAN
 
     // 3. Generate human-readable register report
-    reg.MODE.report.push({
+    reg.CCCR.report.push({
         severityLevel: 0, // info
-        msg: `MODE: ${reg.MODE.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-             `[TSSE] Transceiver Sharing Switch Enable            = ${reg.MODE.fields.TSSE}\n` +
-             `[LCHB] FD Light Commander High Bit Rate Mode Enable = ${reg.MODE.fields.LCHB}\n` +
-             `[FIME] Fault Injection Module Enable                = ${reg.MODE.fields.FIME}\n` +
-             `[EFDI] Error Flag/Frame Disable                     = ${reg.MODE.fields.EFDI}\n` +
-             `[XLTR] Transceiver Mode Switching (TMS) Enable      = ${reg.MODE.fields.XLTR}\n` +
-             `[SFS ] Time Stamp Position: SOF(1), EOF(0)          = ${reg.MODE.fields.SFS}\n` +
-             `[RSTR] Restricted Mode Enable                       = ${reg.MODE.fields.RSTR}\n` +
-             `[MON ] (Bus) Monitoring Mode Enable                 = ${reg.MODE.fields.MON}\n` +
-             `[TXP ] TX Pause                                     = ${reg.MODE.fields.TXP}\n` +
-             `[EFBI] Edge Filtering during Bus Integration        = ${reg.MODE.fields.EFBI}\n` +
-             `[PXHD] Protocol Exception Handling Disable          = ${reg.MODE.fields.PXHD}\n` +
-             `[TDCE] Transmitter Delay Compensation (TDC) Enable  = ${reg.MODE.fields.TDCE}\n` +
-             `[XLOE] XL Operation Enable                          = ${reg.MODE.fields.XLOE}\n` +
-             `[FDOE] FD Operation Enable                          = ${reg.MODE.fields.FDOE}`
+        msg: `CCCR: ${reg.CCCR.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+             `[NISO] Non ISO Operation                     = ${reg.CCCR.fields.NISO}\n` +
+             `[TXP ] Transmit Pause                        = ${reg.CCCR.fields.TXP}\n` +
+             `[EFBI] Edge Filtering during Bus Integration = ${reg.CCCR.fields.EFBI}\n` +
+             `[PXHD] Protocol Exception Handling Disable   = ${reg.CCCR.fields.PXHD}\n` +
+             `[BRSE] Bit Rate Switch Enable                = ${reg.CCCR.fields.BRSE}\n` +
+             `[FDOE] FD Operation Enable                   = ${reg.CCCR.fields.FDOE}\n` +
+             `[TEST] Test Mode Enable                      = ${reg.CCCR.fields.TEST}\n` +
+             `[DAR ] Disable Automatic Retransmission      = ${reg.CCCR.fields.DAR}\n` +
+             `[MON ] Bus Monitoring Mode                   = ${reg.CCCR.fields.MON}\n` +
+             `[CSR ] Clock Stop Request                    = ${reg.CCCR.fields.CSR}\n` +
+             `[CSA ] Clock Stop Acknowledge                = ${reg.CCCR.fields.CSA}\n` +
+             `[ASM ] Restricted Operation Mode             = ${reg.CCCR.fields.ASM}\n` +
+             `[CCE ] Configuration Change Enable           = ${reg.CCCR.fields.CCE}\n` +
+             `[INIT] Initialization                        = ${reg.CCCR.fields.INIT}`
     });
 
-    // Check: FDOE is set when XLOE is also set
-    if (reg.MODE.fields.FDOE === 0 && reg.MODE.fields.XLOE === 1) {
-      reg.MODE.report.push({
-        severityLevel: 3, // error
-        msg: `MODE: FDOE (${reg.MODE.fields.FDOE}) is not set when XLOE (${reg.MODE.fields.XLOE}) is set. FDOE must be set to 1 when XLOE is set to 1.`
+    // Check: FDOE and BRSE should both be set for FD operation
+    if (reg.CCCR.fields.FDOE === 1 && reg.CCCR.fields.BRSE === 0) {
+      reg.CCCR.report.push({
+        severityLevel: 2, // warning
+        msg: `CCCR: FDOE is set but BRSE is not set. For full CAN FD operation, both FDOE and BRSE should be enabled.`
       });
     }
 
-    // Check: TMS=1 while ES=0
-    if (reg.MODE.fields.XLTR === 1 && reg.MODE.fields.EFDI === 0) {
-      reg.MODE.report.push({
-        severityLevel: 3, // error
-        msg: `MODE: TMS=ON while ES=OFF. This is not supported by X_CAN. XLTR (${reg.MODE.fields.XLTR}), EFDI (${reg.MODE.fields.EFDI})`
+    // Check: Configuration should not be in initialization mode during normal operation
+    if (reg.CCCR.fields.INIT === 1) {
+      reg.CCCR.report.push({
+        severityLevel: 1, // recommendation
+        msg: `CCCR: Controller is in Initialization mode (INIT=1). Switch to Normal mode for operation.`
+      });
+    }
+
+    // Check: Test mode indication
+    if (reg.CCCR.fields.TEST === 1) {
+      reg.CCCR.report.push({
+        severityLevel: 1, // recommendation
+        msg: `CCCR: Test Mode is enabled (TEST=1). This should only be used for testing purposes.`
+      });
+    }
+
+    // Check: Bus monitoring mode indication
+    if (reg.CCCR.fields.MON === 1) {
+      reg.CCCR.report.push({
+        severityLevel: 0, // info
+        msg: `CCCR: Bus Monitoring Mode is active (MON=1). Controller will not transmit.`
       });
     }
   }
@@ -240,14 +285,14 @@ function procRegsPrtBitTiming(reg) {
     reg.NBTP.fields = {};
     reg.NBTP.report = []; // Initialize report array
 
-    // 1. Decode all individual bits of NBTP register
-    reg.NBTP.fields.BRP    = getBits(regValue, 29, 25) + 1;  // Bit Rate Prescaler
-    reg.NBTP.fields.NTSEG1 = getBits(regValue, 24, 16) + 1;  // Nominal Time Segment 1
-    reg.NBTP.fields.NTSEG2 = getBits(regValue, 14, 8) + 1;   // Nominal Time Segment 2
-    reg.NBTP.fields.NSJW   = getBits(regValue, 6, 0) + 1;    // Nominal Synchronization Jump Width
+    // 1. Decode all individual bits of NBTP register (M_CAN specification)
+    reg.NBTP.fields.NSJW   = getBits(regValue, 31, 25) + 1; // Nominal Synchronization Jump Width (8 bits)
+    reg.NBTP.fields.NBRP   = getBits(regValue, 24, 16) + 1; // Nominal Bit Rate Prescaler (7 bits)
+    reg.NBTP.fields.NTSEG1 = getBits(regValue, 15, 8) + 1;  // Nominal Time Segment 1 (9 bits)
+    reg.NBTP.fields.NTSEG2 = getBits(regValue, 7, 0) + 1;   // Nominal Time Segment 2 (8 bits)
 
     // 2. Store NBTP bit timing settings in general structure
-    reg.general.bt_arb.set.brp = reg.NBTP.fields.BRP;
+    reg.general.bt_arb.set.brp = reg.NBTP.fields.NBRP;
     reg.general.bt_arb.set.prop_and_phaseseg1 = reg.NBTP.fields.NTSEG1;
     reg.general.bt_arb.set.phaseseg2 = reg.NBTP.fields.NTSEG2;
     reg.general.bt_arb.set.sjw = reg.NBTP.fields.NSJW;
@@ -256,11 +301,40 @@ function procRegsPrtBitTiming(reg) {
     reg.NBTP.report.push({
         severityLevel: 0, // info
         msg: `NBTP: ${reg.NBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-             `[BRP   ] Bit Rate Prescaler     = ${reg.NBTP.fields.BRP}\n` +
-             `[NTSEG1] Nominal Time Segment 1 = ${reg.NBTP.fields.NTSEG1}\n` +
-             `[NTSEG2] Nominal Time Segment 2 = ${reg.NBTP.fields.NTSEG2}\n` +
-             `[NSJW  ] Nominal SJW            = ${reg.NBTP.fields.NSJW}`
+             `[NSJW  ] Nominal Synchronization JW     = ${reg.NBTP.fields.NSJW} (range: 1-128)\n` +
+             `[NBRP  ] Nominal Bit Rate Prescaler     = ${reg.NBTP.fields.NBRP} (range: 1-128)\n` +
+             `[NTSEG1] Nominal Time Segment 1         = ${reg.NBTP.fields.NTSEG1} (range: 1-256)\n` +
+             `[NTSEG2] Nominal Time Segment 2         = ${reg.NBTP.fields.NTSEG2} (range: 1-128)`
     });
+
+    // Validate bit field ranges according to M_CAN specification
+    if (reg.NBTP.fields.NBRP < 1 || reg.NBTP.fields.NBRP > 128) {
+      reg.NBTP.report.push({
+        severityLevel: 3, // error
+        msg: `NBTP: NBRP value ${reg.NBTP.fields.NBRP} is out of valid range (1-128)`
+      });
+    }
+
+    if (reg.NBTP.fields.NTSEG1 < 1 || reg.NBTP.fields.NTSEG1 > 256) {
+      reg.NBTP.report.push({
+        severityLevel: 3, // error
+        msg: `NBTP: NTSEG1 value ${reg.NBTP.fields.NTSEG1} is out of valid range (1-256)`
+      });
+    }
+
+    if (reg.NBTP.fields.NTSEG2 < 1 || reg.NBTP.fields.NTSEG2 > 128) {
+      reg.NBTP.report.push({
+        severityLevel: 3, // error
+        msg: `NBTP: NTSEG2 value ${reg.NBTP.fields.NTSEG2} is out of valid range (1-128)`
+      });
+    }
+
+    if (reg.NBTP.fields.NSJW < 1 || reg.NBTP.fields.NSJW > 128) {
+      reg.NBTP.report.push({
+        severityLevel: 3, // error
+        msg: `NBTP: NSJW value ${reg.NBTP.fields.NSJW} is out of valid range (1-128)`
+      });
+    }
 
     // 4. Calculate arbitration phase results and store in general structure
     reg.general.bt_arb.res.tq_len = reg.general.clk_period * reg.general.bt_arb.set.brp;
@@ -307,7 +381,7 @@ function procRegsPrtBitTiming(reg) {
     if (reg.general.bt_arb.res.tq_per_bit < 8) {
       reg.NBTP.report.push({
         severityLevel: 2, // warning
-        msg: `NBTP: Number of TQ/Bit is small. If possible, increase the TQ/Bit by reducing BRP or increasing the CAN Clock Freq.`
+        msg: `NBTP: Number of TQ/Bit is small. If possible, increase the TQ/Bit by reducing NBRP or increasing the CAN Clock Freq.`
       });
     }
   } // end if NBTP
@@ -320,19 +394,21 @@ function procRegsPrtBitTiming(reg) {
     reg.DBTP.fields = {};
     reg.DBTP.report = []; // Initialize report array
 
-    // 1. Decode all individual bits of DBTP register
-    reg.DBTP.fields.DTDCO  = getBits(regValue, 31, 24);      // CAN FD Transmitter Delay Compensation Offset
-    reg.DBTP.fields.DTSEG1 = getBits(regValue, 23, 16) + 1;  // CAN FD Data Time Segment 1
-    reg.DBTP.fields.DTSEG2 = getBits(regValue, 14, 8) + 1;   // CAN FD Data Time Segment 2
-    reg.DBTP.fields.DSJW   = getBits(regValue, 6, 0) + 1;    // CAN FD Data Synchronization Jump Width
+    // 1. Decode all individual bits of DBTP register (M_CAN specification)
+    reg.DBTP.fields.TDC    = getBits(regValue, 23, 23);     // Transmitter Delay Compensation (1 bit)
+    reg.DBTP.fields.DBRP   = getBits(regValue, 20, 16) + 1; // Data Bit Rate Prescaler (5 bits)
+    reg.DBTP.fields.DTSEG1 = getBits(regValue, 12, 8) + 1;  // Data Time Segment 1 (5 bits)
+    reg.DBTP.fields.DTSEG2 = getBits(regValue, 7, 4) + 1;   // Data Time Segment 2 (4 bits)
+    reg.DBTP.fields.DSJW   = getBits(regValue, 3, 0) + 1;   // Data Synchronization Jump Width (4 bits)
 
     // 2. Store DBTP bit timing settings in general structure
-    reg.general.bt_fddata.set.ssp_offset = reg.DBTP.fields.DTDCO;
+    reg.general.bt_global.set.tdc = (reg.DBTP.fields.TDC === 1); // TDC enabled when TDC=1
+    reg.general.bt_fddata.set.ssp_offset = reg.DBTP.fields.TDC;
     reg.general.bt_fddata.set.prop_and_phaseseg1 = reg.DBTP.fields.DTSEG1;
     reg.general.bt_fddata.set.phaseseg2 = reg.DBTP.fields.DTSEG2;
     reg.general.bt_fddata.set.sjw = reg.DBTP.fields.DSJW;
-    // set brp (as a copy of arb)
-    reg.general.bt_fddata.set.brp = reg.general.bt_arb.set.brp !== undefined ? reg.general.bt_arb.set.brp : 0; // X_CAN uses same BRP as in arbitration phase
+    // set brp (M_CAN uses separate data phase prescaler)
+    reg.general.bt_fddata.set.brp = reg.DBTP.fields.DBRP;
 
     // different output based on FD enabled yes/no
     if (reg.general.bt_global.set.fd !== undefined && reg.general.bt_global.set.fd === false) {
@@ -340,19 +416,56 @@ function procRegsPrtBitTiming(reg) {
       reg.DBTP.report.push({
         severityLevel: 2, // warning
         msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-             `FD Operation is disabled: a) MODE.FDOE=0 OR b) TMS=ON or ES=OFF OR c) MODE register not present`
+             `FD Operation is disabled: a) CCCR.FDOE=0 OR b) CCCR.BRSE=0 OR c) CCCR register not present`
       });
 
-    } else { // FD enabled (or MODE register not present)
+    } else { // FD enabled (or CCCR register not present)
       // 3. Generate human-readable register report
       reg.DBTP.report.push({
           severityLevel: 0, // info
           msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-               `[DTDCO ] FD TDC Offset     = ${reg.DBTP.fields.DTDCO}\n` +
-               `[DTSEG1] FD Time Segment 1 = ${reg.DBTP.fields.DTSEG1}\n` +
-               `[DTSEG2] FD Time Segment 2 = ${reg.DBTP.fields.DTSEG2}\n` +
-               `[DSJW  ] FD SJW            = ${reg.DBTP.fields.DSJW}`
+               `[TDC   ] Transmitter Delay Compensation = ${reg.DBTP.fields.TDC}\n` +
+               `[DBRP  ] Data Bit Rate Prescaler        = ${reg.DBTP.fields.DBRP} (range: 1-32)\n` +
+               `[DTSEG1] Data Time Segment 1            = ${reg.DBTP.fields.DTSEG1} (range: 1-32)\n` +
+               `[DTSEG2] Data Time Segment 2            = ${reg.DBTP.fields.DTSEG2} (range: 1-16)\n` +
+               `[DSJW  ] Data Synchronization JW        = ${reg.DBTP.fields.DSJW} (range: 1-16)`
       });
+
+      // Validate bit field ranges according to M_CAN specification
+      if (reg.DBTP.fields.TDC < 0 || reg.DBTP.fields.TDC > 255) {
+        reg.DBTP.report.push({
+          severityLevel: 3, // error
+          msg: `DBTP: TDC value ${reg.DBTP.fields.TDC} is out of valid range (0-255)`
+        });
+      }
+
+      if (reg.DBTP.fields.DBRP < 1 || reg.DBTP.fields.DBRP > 8) {
+        reg.DBTP.report.push({
+          severityLevel: 3, // error
+          msg: `DBTP: DBRP value ${reg.DBTP.fields.DBRP} is out of valid range (1-8)`
+        });
+      }
+
+      if (reg.DBTP.fields.DTSEG1 < 1 || reg.DBTP.fields.DTSEG1 > 256) {
+        reg.DBTP.report.push({
+          severityLevel: 3, // error
+          msg: `DBTP: DTSEG1 value ${reg.DBTP.fields.DTSEG1} is out of valid range (1-256)`
+        });
+      }
+
+      if (reg.DBTP.fields.DTSEG2 < 1 || reg.DBTP.fields.DTSEG2 > 16) {
+        reg.DBTP.report.push({
+          severityLevel: 3, // error
+          msg: `DBTP: DTSEG2 value ${reg.DBTP.fields.DTSEG2} is out of valid range (1-16)`
+        });
+      }
+
+      if (reg.DBTP.fields.DSJW < 1 || reg.DBTP.fields.DSJW > 16) {
+        reg.DBTP.report.push({
+          severityLevel: 3, // error
+          msg: `DBTP: DSJW value ${reg.DBTP.fields.DSJW} is out of valid range (1-16)`
+        });
+      }
 
       // 4. Calculate FD data phase results and store in general structure
       reg.general.bt_fddata.res.tq_len = reg.general.clk_period * reg.general.bt_fddata.set.brp;
@@ -415,200 +528,14 @@ function procRegsPrtBitTiming(reg) {
       if (reg.general.bt_fddata.res.tq_per_bit < 8) {
         reg.DBTP.report.push({
           severityLevel: 2, // warning
-          msg: `DBTP: Number of TQ/Bit is small. If possible, increase the TQ/Bit by reducing BRP or increasing the CAN Clock Freq.`
+          msg: `DBTP: Number of TQ/Bit is small. If possible, increase the TQ/Bit by reducing DBRP or increasing the CAN Clock Freq.`
         });
       }
     } // end if FDOE
     
   } // end if DBTP
 
-  // === XBTP: Extract parameters from register ==========================
-  if ('XBTP' in reg && reg.XBTP.int32 !== undefined) {
-    const regValue = reg.XBTP.int32;
-
-    // 0. Extend existing register structure
-    reg.XBTP.fields = {};
-    reg.XBTP.report = []; // Initialize report array
-
-    // 1. Decode all individual bits of XBTP register
-    reg.XBTP.fields.XTDCO  = getBits(regValue, 31, 24);      // XL Transmitter Delay Compensation Offset
-    reg.XBTP.fields.XTSEG1 = getBits(regValue, 23, 16) + 1;  // XL Time Segment 1
-    reg.XBTP.fields.XTSEG2 = getBits(regValue, 14, 8) + 1;   // XL Time Segment 2
-    reg.XBTP.fields.XSJW   = getBits(regValue, 6, 0) + 1;    // XL Synchronization Jump Width
-    
-    // 2. Store XBTP bit timing settings in general structure
-    reg.general.bt_xldata.set.ssp_offset = reg.XBTP.fields.XTDCO;
-    reg.general.bt_xldata.set.prop_and_phaseseg1 = reg.XBTP.fields.XTSEG1;
-    reg.general.bt_xldata.set.phaseseg2 = reg.XBTP.fields.XTSEG2;
-    reg.general.bt_xldata.set.sjw = reg.XBTP.fields.XSJW;
-    // set brp (as a copy of arb)
-    reg.general.bt_xldata.set.brp = reg.general.bt_arb.set.brp !== undefined ? reg.general.bt_arb.set.brp : 0; // X_CAN uses same BRP as in arbitration phase
-
-    // different output based on XL enabled yes/no
-    if (reg.general.bt_global.set.xl !== undefined && reg.general.bt_global.set.xl === false) {
-      // 3. Generate human-readable register report
-      reg.XBTP.report.push({
-        severityLevel: 2, // warning
-        msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-             `XL Operation is disabled (MODE.XLOE=0) OR MODE register not present`
-      });
-
-    } else { // XL enabled (or MODE register not present)
-      // 3. Generate human-readable register report
-      reg.XBTP.report.push({
-          severityLevel: 0, // info
-          msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-               `[XTDCO ] XL TDC Offset     = ${reg.XBTP.fields.XTDCO}\n` +
-               `[XTSEG1] XL Time Segment 1 = ${reg.XBTP.fields.XTSEG1}\n` +
-               `[XTSEG2] XL Time Segment 2 = ${reg.XBTP.fields.XTSEG2}\n` +
-               `[XSJW  ] XL SJW            = ${reg.XBTP.fields.XSJW}`
-      });
-
-      // 4. Calculate XL data phase results and store in general structure
-      reg.general.bt_xldata.res.tq_len = reg.general.clk_period * reg.general.bt_xldata.set.brp;
-      reg.general.bt_xldata.res.tq_per_bit = 1 + reg.general.bt_xldata.set.prop_and_phaseseg1 + reg.general.bt_xldata.set.phaseseg2;
-      reg.general.bt_xldata.res.bitrate = reg.general.clk_freq / (reg.general.bt_xldata.set.brp * reg.general.bt_xldata.res.tq_per_bit);
-      reg.general.bt_xldata.res.bit_length = 1000 / reg.general.bt_xldata.res.bitrate;
-      reg.general.bt_xldata.res.sp = 100 - 100 * reg.general.bt_xldata.set.phaseseg2 / reg.general.bt_xldata.res.tq_per_bit;
-      
-      // Calculate SSP (Secondary Sample Point) if TDC is enabled
-      if (reg.general.bt_global.set.tdc === true) {
-        reg.general.bt_xldata.res.ssp = 100 - 100*reg.general.bt_xldata.set.ssp_offset/reg.general.bt_xldata.res.tq_per_bit;
-      } else {
-        reg.general.bt_xldata.res.ssp = 0; // SSP not used when TDC disabled
-      }
-
-      // 5. Generate Report about settings
-      reg.XBTP.report.push({
-          severityLevel: 4, // infoCalculated
-          msg: `XL Data Phase Bitrate\n` +
-               `Bitrate    = ${reg.general.bt_xldata.res.bitrate} Mbit/s\n` +
-               `Bit Length = ${reg.general.bt_xldata.res.bit_length} ns\n` +
-               `TQ per Bit = ${reg.general.bt_xldata.res.tq_per_bit}\n` +
-               `SP         = ${reg.general.bt_xldata.res.sp} %\n` +
-               `SSP        = ${reg.general.bt_xldata.res.ssp} %`
-      });
-
-      // Check: CAN Clock Frequency as recommended in CiA 612-1?
-      if ((reg.general.clk_freq != 160) && (reg.general.clk_freq != 80)) {
-        reg.XBTP.report.push({
-          severityLevel: 2, // warning
-          msg: `CAN XL: Recommended CAN Clock Frequency is 80 MHz or 160 MHz. Current value is ${reg.general.clk_freq} MHz.`
-        });
-      }
-
-      // Check: check for SJW <= min(PhaseSeg1, PhaseSeg2)?
-      if (reg.general.bt_xldata.set.sjw > reg.general.bt_xldata.set.phaseseg2) {
-        reg.XBTP.report.push({
-          severityLevel: 3, // error
-          msg: `XBTP: SJW (${reg.general.bt_xldata.set.sjw}) > PhaseSeg2 (${reg.general.bt_xldata.set.phaseseg2}). ISO 11898-1 requires SJW <= PhaseSeg2.`
-        });
-      }
-
-      // Check: check for PhaseSeg2 >= 2
-      if (reg.general.bt_xldata.set.phaseseg2 < 2) {
-        reg.XBTP.report.push({
-          severityLevel: 3, // error
-          msg: `XBTP: PhaseSeg2 (${reg.general.bt_xldata.set.phaseseg2}) < 2. ISO 11898-1 requires a value >= 2.`
-        });
-      }
-
-      // Check: SJW choosen as large as possible?
-      if (reg.general.bt_xldata.set.sjw < reg.general.bt_xldata.set.phaseseg2) {
-        reg.XBTP.report.push({
-          severityLevel: 2, // warning
-          msg: `XBTP: SJW (${reg.general.bt_xldata.set.sjw}) < PhaseSeg2 (${reg.general.bt_xldata.set.phaseseg2}). It is recommended to use SJW=PhaseSeg2.`
-        });
-      }
-
-      // Check: Number of TQ large enough?
-      if (reg.general.bt_fddata.res.tq_per_bit < 8) {
-        reg.DBTP.report.push({
-          severityLevel: 2, // warning
-          msg: `XBTP: Number of TQ/Bit is small. If possible, increase the TQ/Bit by reducing BRP or increasing the CAN Clock Freq.`
-        });
-      }
-
-      // Ratio of Arb. Bit Time / XL Data Bit Time >= 2 ?
-      if (!reg.MODE || !reg.MODE.fields || reg.MODE.fields.EFDI == 0) { // Error Signaling is enabled
-        if (reg.general.bt_arb.res.tq_per_bit < (2 * reg.general.bt_xldata.res.tq_per_bit)) {
-          reg.XBTP.report.push({
-            severityLevel: 3, // error
-            msg: `Minimum Ratio of [XL Data Bitrate / Nominal Bitrate] = ${reg.general.bt_arb.res.tq_per_bit / reg.general.bt_xldata.res.tq_per_bit}. Minimum ratio is 2, when Error Signaling is enabled (MODE.ESDI=0).`
-          });
-        }
-      } // end if EFDI
-    } // end if XLOE
-  } // end if XBTP
-  
-  // === PCFG: Extract parameters from register (if TMS is enabled) ==============
-  if ('PCFG' in reg && reg.PCFG.int32 !== undefined) {
-    const regValue = reg.PCFG.int32;
-
-    // 0. Extend existing register structure
-    reg.PCFG.fields = {};
-    reg.PCFG.report = []; // Initialize report array
-
-    // 1. Decode all individual bits of PCFG register
-    reg.PCFG.fields.PWMO = getBits(regValue, 21, 16);     // PWM Offset
-    reg.PCFG.fields.PWML = getBits(regValue, 13, 8) + 1;  // PWM Long
-    reg.PCFG.fields.PWMS = getBits(regValue, 5, 0) + 1;   // PWM Short
-
-    // 2. Store PWM settings in XL data structure
-    reg.general.bt_xldata.set.pwm_offset = reg.PCFG.fields.PWMO;
-    reg.general.bt_xldata.set.pwm_long = reg.PCFG.fields.PWML;
-    reg.general.bt_xldata.set.pwm_short = reg.PCFG.fields.PWMS;
-
-    // different output based on XLOE & TMS
-    if (!reg.MODE || !reg.MODE.fields || (reg.MODE.fields.XLOE !== undefined && reg.MODE.fields.XLOE == 0) || (reg.MODE.fields.XLTR !== undefined && reg.MODE.fields.XLTR == 0) || !reg.XBTP) {
-      // 3. Generate human-readable register report
-      reg.PCFG.report.push({
-        severityLevel: 0, // info
-        msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-             `XL Operation (MODE.XLOE=0) OR Transceiver Mode Switch (MODE.XLTR=0) is disabled OR MODE register not present`
-      });
-
-    } else { // MODE.XLTR == 1 && MODE.XLOE == 1
-      // 3. Generate human-readable register report
-      reg.PCFG.report.push({
-          severityLevel: 0, // info
-          msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-               `[PWMO] PWM Offset      = ${reg.PCFG.fields.PWMO}\n` +
-               `[PWML] PWM Phase Long  = ${reg.PCFG.fields.PWML}\n` +
-               `[PWMS] PWM Phase Short = ${reg.PCFG.fields.PWMS}`
-      });
-
-      // 4. Calculate PWM results and store in XL data structure
-      reg.general.bt_xldata.res.pwm_symbol_len_ns = (reg.general.bt_xldata.set.pwm_short + reg.general.bt_xldata.set.pwm_long) * reg.general.clk_period;
-      reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles = (reg.general.bt_xldata.set.pwm_short + reg.general.bt_xldata.set.pwm_long);
-      reg.general.bt_xldata.res.pwm_symbols_per_bit_time = (reg.general.bt_xldata.res.tq_per_bit * reg.general.bt_arb.set.brp) / reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles;
-      
-      // 5. Generate Report about settings
-      reg.PCFG.report.push({
-          severityLevel: 4, // infoCalculated
-          msg: `PWM Configuration\nPWM Symbol Length = ${reg.general.bt_xldata.res.pwm_symbol_len_ns} ns = ${reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles} clock cycles\nPWM Symbols per XL Data Bit Time = ${reg.general.bt_xldata.res.pwm_symbols_per_bit_time.toFixed(2)}`
-      });
-
-      // Ratio of XL Data Bit Time to PWM Symbol Length
-      if (!Number.isInteger(reg.general.bt_xldata.res.pwm_symbols_per_bit_time)) {
-        reg.PCFG.report.push({
-          severityLevel: 3, // error
-          msg: `Length of XL Data Bit Time is not an integer multiple of PWM Symbol Length. tBit/tPWM=${reg.general.bt_xldata.res.pwm_symbols_per_bit_time.toFixed(2)}`
-        });
-      }
-
-      // PWM Offset correctness
-      const pwmo_calculated = (reg.general.bt_arb.res.tq_per_bit * reg.general.bt_arb.set.brp) % reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles;
-      if (pwmo_calculated !== reg.general.bt_xldata.set.pwm_offset) {
-        reg.PCFG.report.push({
-          severityLevel: 3, // error
-          msg: `PWM Offset (PCFG.PWMO = ${reg.general.bt_xldata.set.pwm_offset}) is wrong. Correct value is PCFG.PWMO = ${pwmo_calculated}`
-        });
-      }
-
-    } // end if XLOE || XLTR
-  } // end if PCFG
-}
+} // end procRegsPrtBitTiming
 
 // ===================================================================================
 // Process Other PRT Registers: Extract parameters, validate ranges, generate report
