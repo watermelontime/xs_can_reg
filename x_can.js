@@ -145,7 +145,21 @@ function procRegsPrtBitTiming(reg) {
     // 3. Generate human-readable register report
     reg.MODE.report.push({
         severityLevel: 0, // info
-        msg: `MODE: ${reg.MODE.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[TSSE] Transceiver Sharing Switch Enable = ${reg.MODE.fields.TSSE}\n[LCHB] FD Light Commander High Bit Rate Mode Enable = ${reg.MODE.fields.LCHB}\n[FIME] Fault Injection Module Enable = ${reg.MODE.fields.FIME}\n[EFDI] Error Flag/Frame Disable = ${reg.MODE.fields.EFDI}\n[XLTR] Transceiver Mode Switching (TMS) Enable = ${reg.MODE.fields.XLTR}\n[SFS ] Time Stamp Position: Start of Frame (1), End of Frame (0) = ${reg.MODE.fields.SFS}\n[RSTR] Restricted Mode Enable = ${reg.MODE.fields.RSTR}\n[MON ] (Bus) Monitoring Mode Enable = ${reg.MODE.fields.MON}\n[TXP ] TX Pause = ${reg.MODE.fields.TXP}\n[EFBI] Edge Filtering during Bus Integration = ${reg.MODE.fields.EFBI}\n[PXHD] Protocol Exception Handling Disable = ${reg.MODE.fields.PXHD}\n[TDCE] Transmitter Delay Compensation (TDC) Enable = ${reg.MODE.fields.TDCE}\n[XLOE] XL Operation Enable = ${reg.MODE.fields.XLOE}\n[FDOE] FD Operation Enable = ${reg.MODE.fields.FDOE}`
+        msg: `MODE: ${reg.MODE.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+             `[TSSE] Transceiver Sharing Switch Enable            = ${reg.MODE.fields.TSSE}\n` +
+             `[LCHB] FD Light Commander High Bit Rate Mode Enable = ${reg.MODE.fields.LCHB}\n` +
+             `[FIME] Fault Injection Module Enable                = ${reg.MODE.fields.FIME}\n` +
+             `[EFDI] Error Flag/Frame Disable                     = ${reg.MODE.fields.EFDI}\n` +
+             `[XLTR] Transceiver Mode Switching (TMS) Enable      = ${reg.MODE.fields.XLTR}\n` +
+             `[SFS ] Time Stamp Position: SOF(1), EOF(0)          = ${reg.MODE.fields.SFS}\n` +
+             `[RSTR] Restricted Mode Enable                       = ${reg.MODE.fields.RSTR}\n` +
+             `[MON ] (Bus) Monitoring Mode Enable                 = ${reg.MODE.fields.MON}\n` +
+             `[TXP ] TX Pause                                     = ${reg.MODE.fields.TXP}\n` +
+             `[EFBI] Edge Filtering during Bus Integration        = ${reg.MODE.fields.EFBI}\n` +
+             `[PXHD] Protocol Exception Handling Disable          = ${reg.MODE.fields.PXHD}\n` +
+             `[TDCE] Transmitter Delay Compensation (TDC) Enable  = ${reg.MODE.fields.TDCE}\n` +
+             `[XLOE] XL Operation Enable                          = ${reg.MODE.fields.XLOE}\n` +
+             `[FDOE] FD Operation Enable                          = ${reg.MODE.fields.FDOE}`
     });
   }
 
@@ -172,7 +186,11 @@ function procRegsPrtBitTiming(reg) {
     // 3. Generate human-readable register report
     reg.NBTP.report.push({
         severityLevel: 0, // info
-        msg: `NBTP: ${reg.NBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[BRP   ] Bit Rate Prescaler     = ${reg.NBTP.fields.BRP}\n[NTSEG1] Nominal Time Segment 1 = ${reg.NBTP.fields.NTSEG1}\n[NTSEG2] Nominal Time Segment 2 = ${reg.NBTP.fields.NTSEG2}\n[NSJW  ] Nominal Synchronization Jump Width = ${reg.NBTP.fields.NSJW}`
+        msg: `NBTP: ${reg.NBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+             `[BRP   ] Bit Rate Prescaler     = ${reg.NBTP.fields.BRP}\n` +
+             `[NTSEG1] Nominal Time Segment 1 = ${reg.NBTP.fields.NTSEG1}\n` +
+             `[NTSEG2] Nominal Time Segment 2 = ${reg.NBTP.fields.NTSEG2}\n` +
+             `[NSJW  ] Nominal SJW            = ${reg.NBTP.fields.NSJW}`
     });
 
     // 4. Calculate arbitration phase results and store in general structure
@@ -185,7 +203,11 @@ function procRegsPrtBitTiming(reg) {
     // 5. Generate Report about settings
     reg.NBTP.report.push({
         severityLevel: 4, // infoCalculated
-        msg: `Nominal Bitrate (Arbitration Phase)\nBitrate    = ${reg.general.bt_arb.res.bitrate} Mbit/s\nBit Length = ${reg.general.bt_arb.res.bit_length} ns\nTQ per Bit = ${reg.general.bt_arb.res.tq_per_bit}\nSP         = ${reg.general.bt_arb.res.sp} %`
+        msg: `Nominal Bitrate (Arbitration Phase)\n` +
+             `Bitrate    = ${reg.general.bt_arb.res.bitrate} Mbit/s\n` +
+             `Bit Length = ${reg.general.bt_arb.res.bit_length} ns\n` +
+             `TQ per Bit = ${reg.general.bt_arb.res.tq_per_bit}\n` +
+             `SP         = ${reg.general.bt_arb.res.sp} %`
     });
 
     // Check: check for SJW <= min(PhaseSeg1, PhaseSeg2)?
@@ -246,14 +268,19 @@ function procRegsPrtBitTiming(reg) {
       // 3. Generate human-readable register report
       reg.DBTP.report.push({
         severityLevel: 2, // warning
-        msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\nFD Operation is disabled (MODE.FDOE=0) OR MODE register not present`
+        msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+             `FD Operation is disabled (MODE.FDOE=0) OR MODE register not present`
       });
 
     } else { // MODE.FDOE == 1 OR MODE register not present
       // 3. Generate human-readable register report
       reg.DBTP.report.push({
           severityLevel: 0, // info
-          msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[DTDCO ] FD TDC Offset     = ${reg.DBTP.fields.DTDCO}\n[DTSEG1] FD Time Segment 1 = ${reg.DBTP.fields.DTSEG1}\n[DTSEG2] FD Time Segment 2 = ${reg.DBTP.fields.DTSEG2}\n[DSJW  ] FD Synchronization Jump Width = ${reg.DBTP.fields.DSJW}`
+          msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+               `[DTDCO ] FD TDC Offset     = ${reg.DBTP.fields.DTDCO}\n` +
+               `[DTSEG1] FD Time Segment 1 = ${reg.DBTP.fields.DTSEG1}\n` +
+               `[DTSEG2] FD Time Segment 2 = ${reg.DBTP.fields.DTSEG2}\n` +
+               `[DSJW  ] FD SJW            = ${reg.DBTP.fields.DSJW}`
       });
 
       // 4. Calculate FD data phase results and store in general structure
@@ -272,7 +299,12 @@ function procRegsPrtBitTiming(reg) {
       // 5. Generate Report about settings
       reg.DBTP.report.push({
           severityLevel: 4, // infoCalculated
-          msg: `CAN FD Data Phase Bitrate\nBitrate    = ${reg.general.bt_fddata.res.bitrate} Mbit/s\nBit Length = ${reg.general.bt_fddata.res.bit_length} ns\nTQ per Bit = ${reg.general.bt_fddata.res.tq_per_bit}\nSP         = ${reg.general.bt_fddata.res.sp} %\nSSP        = ${reg.general.bt_fddata.res.ssp} %`
+          msg: `CAN FD Data Phase Bitrate\n` +
+               `Bitrate    = ${reg.general.bt_fddata.res.bitrate} Mbit/s\n` +
+               `Bit Length = ${reg.general.bt_fddata.res.bit_length} ns\n` +
+               `TQ per Bit = ${reg.general.bt_fddata.res.tq_per_bit}\n` +
+               `SP         = ${reg.general.bt_fddata.res.sp} %\n` +
+               `SSP        = ${reg.general.bt_fddata.res.ssp} %`
       });
 
       // Check: CAN Clock Frequency as recommended in CiA 601-3?
@@ -343,14 +375,19 @@ function procRegsPrtBitTiming(reg) {
       // 3. Generate human-readable register report
       reg.XBTP.report.push({
         severityLevel: 2, // warning
-        msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\nXL Operation is disabled (MODE.XLOE=0) OR MODE register not present`
+        msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+             `XL Operation is disabled (MODE.XLOE=0) OR MODE register not present`
       });
 
     } else { // MODE.XLOE == 1
       // 3. Generate human-readable register report
       reg.XBTP.report.push({
           severityLevel: 0, // info
-          msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[XTDCO ] XL TDC Offset     = ${reg.XBTP.fields.XTDCO}\n[XTSEG1] XL Time Segment 1 = ${reg.XBTP.fields.XTSEG1}\n[XTSEG2] XL Time Segment 2 = ${reg.XBTP.fields.XTSEG2}\n[XSJW  ] XL Synchronization Jump Width = ${reg.XBTP.fields.XSJW}`
+          msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+               `[XTDCO ] XL TDC Offset     = ${reg.XBTP.fields.XTDCO}\n` +
+               `[XTSEG1] XL Time Segment 1 = ${reg.XBTP.fields.XTSEG1}\n` +
+               `[XTSEG2] XL Time Segment 2 = ${reg.XBTP.fields.XTSEG2}\n` +
+               `[XSJW  ] XL SJW            = ${reg.XBTP.fields.XSJW}`
       });
 
       // 4. Calculate XL data phase results and store in general structure
@@ -369,7 +406,12 @@ function procRegsPrtBitTiming(reg) {
       // 5. Generate Report about settings
       reg.XBTP.report.push({
           severityLevel: 4, // infoCalculated
-          msg: `XL Data Phase Bitrate\nBitrate    = ${reg.general.bt_xldata.res.bitrate} Mbit/s\nBit Length = ${reg.general.bt_xldata.res.bit_length} ns\nTQ per Bit = ${reg.general.bt_xldata.res.tq_per_bit}\nSP         = ${reg.general.bt_xldata.res.sp} %\nSSP        = ${reg.general.bt_xldata.res.ssp} %`
+          msg: `XL Data Phase Bitrate\n` +
+               `Bitrate    = ${reg.general.bt_xldata.res.bitrate} Mbit/s\n` +
+               `Bit Length = ${reg.general.bt_xldata.res.bit_length} ns\n` +
+               `TQ per Bit = ${reg.general.bt_xldata.res.tq_per_bit}\n` +
+               `SP         = ${reg.general.bt_xldata.res.sp} %\n` +
+               `SSP        = ${reg.general.bt_xldata.res.ssp} %`
       });
 
       // Check: CAN Clock Frequency as recommended in CiA 612-1?
@@ -447,14 +489,18 @@ function procRegsPrtBitTiming(reg) {
       // 3. Generate human-readable register report
       reg.PCFG.report.push({
         severityLevel: 0, // info
-        msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\nXL Operation (MODE.XLOE=0) OR Transceiver Mode Switch (MODE.XLTR=0) is disabled OR MODE register not present`
+        msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+             `XL Operation (MODE.XLOE=0) OR Transceiver Mode Switch (MODE.XLTR=0) is disabled OR MODE register not present`
       });
 
     } else { // MODE.XLTR == 1 && MODE.XLOE == 1
       // 3. Generate human-readable register report
       reg.PCFG.report.push({
           severityLevel: 0, // info
-          msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[PWMO] PWM Offset      = ${reg.PCFG.fields.PWMO}\n[PWML] PWM phase Long  = ${reg.PCFG.fields.PWML}\n[PWMS] PWM phase Short = ${reg.PCFG.fields.PWMS}`
+          msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+               `[PWMO] PWM Offset      = ${reg.PCFG.fields.PWMO}\n` +
+               `[PWML] PWM Phase Long  = ${reg.PCFG.fields.PWML}\n` +
+               `[PWMS] PWM Phase Short = ${reg.PCFG.fields.PWMS}`
       });
 
       // 4. Calculate PWM results and store in XL data structure
@@ -508,12 +554,14 @@ function procRegsPrtOther(reg) {
     if (regValue === 0x87654321) {
       reg.ENDN.report.push({
         severityLevel: 0, // info
-        msg: `ENDN: ${reg.ENDN.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[ETV] Endianness Test Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')} (Correct)`
+        msg: `ENDN: ${reg.ENDN.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+             `[ETV] Endianness Test Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')} (Correct)`
       });
     } else {
       reg.ENDN.report.push({
         severityLevel: 3, // error
-        msg: `ENDN: ${reg.ENDN.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[ETV] Endianness Test Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')} (Expected: 0x87654321)`
+        msg: `ENDN: ${reg.ENDN.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+             `[ETV] Endianness Test Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')} (Expected: 0x87654321)`
       });
     }
   }
@@ -537,12 +585,18 @@ function procRegsPrtOther(reg) {
     // 2. Generate human-readable register report
     reg.PREL.report.push({
       severityLevel: 0, // info
-      msg: `PREL: ${reg.PREL.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[REL    ] Release  = ${reg.PREL.fields.REL}\n[STEP   ] Step     = ${reg.PREL.fields.STEP}\n[SUBSTEP] Substep  = ${reg.PREL.fields.SUBSTEP}\n[YEAR   ] Year     = ${reg.PREL.fields.YEAR}\n[MON    ] Month    = ${reg.PREL.fields.MON}\n[DAY    ] Day      = ${reg.PREL.fields.DAY}`
+      msg: `PREL: ${reg.PREL.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[REL    ] Release  = ${reg.PREL.fields.REL}\n` +
+           `[STEP   ] Step     = ${reg.PREL.fields.STEP}\n` +
+           `[SUBSTEP] Substep  = ${reg.PREL.fields.SUBSTEP}\n` +
+           `[YEAR   ] Year     = ${reg.PREL.fields.YEAR}\n` +
+           `[MON    ] Month    = ${reg.PREL.fields.MON}\n` +
+           `[DAY    ] Day      = ${reg.PREL.fields.DAY}`
     });
 
     // Generate Version Report
     reg.PREL.report.push({
-      severityLevel: 0, // info
+      severityLevel: 4, // 
       msg: `PREL: X_CAN V${reg.PREL.fields.REL.toString(16).toUpperCase()}.${reg.PREL.fields.STEP.toString(16).toUpperCase()}.${reg.PREL.fields.SUBSTEP.toString(16).toUpperCase()}, Date ${reg.PREL.fields.DAY.toString(16).toUpperCase().padStart(2, '0')}.${reg.PREL.fields.MON.toString(16).toUpperCase().padStart(2, '0')}.${reg.PREL.fields.YEAR.toString(16).toUpperCase().padStart(2, '0')}`
     });
   }
@@ -571,7 +625,18 @@ function procRegsPrtOther(reg) {
     // 2. Generate human-readable register report
     reg.STAT.report.push({
       severityLevel: 0, // info
-      msg: `STAT: ${reg.STAT.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[ACT ] Activity                     = ${reg.STAT.fields.ACT} (0: inactive, 1: idle, 2: receiver, 3: transmitter))\n[INT ] Integrating                  = ${reg.STAT.fields.INT}\n[STP ] Stop                         = ${reg.STAT.fields.STP}\n[CLKA] Clock Active                 = ${reg.STAT.fields.CLKA}\n[FIMA] Fault Injection Mode Active  = ${reg.STAT.fields.FIMA}\n[EP  ] Error Passive State          = ${reg.STAT.fields.EP}\n[BO  ] Bus Off State                = ${reg.STAT.fields.BO}\n[TDCV] Transmitter Delay Comp Value = ${reg.STAT.fields.TDCV}\n[REC ] Receive Error Counter        = ${reg.STAT.fields.REC}\n[RP  ] RX Error Counter Carry Flag  = ${reg.STAT.fields.RP}\n[TEC ] Transmit Error Counter       = ${reg.STAT.fields.TEC}`
+      msg: `STAT: ${reg.STAT.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[ACT ] Activity                     = ${reg.STAT.fields.ACT} (0: inactive, 1: idle, 2: receiver, 3: transmitter))\n` +
+           `[INT ] Integrating                  = ${reg.STAT.fields.INT}\n` +
+           `[STP ] Stop                         = ${reg.STAT.fields.STP}\n` +
+           `[CLKA] Clock Active                 = ${reg.STAT.fields.CLKA}\n` +
+           `[FIMA] Fault Injection Mode Active  = ${reg.STAT.fields.FIMA}\n` +
+           `[EP  ] Error Passive State          = ${reg.STAT.fields.EP}\n` +
+           `[BO  ] Bus Off State                = ${reg.STAT.fields.BO}\n` +
+           `[TDCV] Transmitter Delay Comp Value = ${reg.STAT.fields.TDCV}\n` +
+           `[REC ] Receive Error Counter        = ${reg.STAT.fields.REC}\n` +
+           `[RP  ] RX Error Counter Carry Flag  = ${reg.STAT.fields.RP}\n` +
+           `[TEC ] Transmit Error Counter       = ${reg.STAT.fields.TEC}`
     });
 
     // 3. Add status-specific warnings/errors
@@ -629,7 +694,22 @@ function procRegsPrtOther(reg) {
     // 2. Generate human-readable register report
     reg.EVNT.report.push({
       severityLevel: 0, // info
-      msg: `EVNT: ${reg.EVNT.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[RXFI] RX FIFO Interrupt             = ${reg.EVNT.fields.RXFI}\n[TXFI] TX FIFO Interrupt             = ${reg.EVNT.fields.TXFI}\n[TEFI] TX Event FIFO Interrupt       = ${reg.EVNT.fields.TEFI}\n[HPMI] High Priority Message Int     = ${reg.EVNT.fields.HPMI}\n[WKUI] Wake Up Interrupt             = ${reg.EVNT.fields.WKUI}\n[MRAF] Message RAM Access Failure    = ${reg.EVNT.fields.MRAF}\n[TSWE] Timestamp Wraparound Event    = ${reg.EVNT.fields.TSWE}\n[ELO ] Error Logging Overflow        = ${reg.EVNT.fields.ELO}\n[EP  ] Error Passive                 = ${reg.EVNT.fields.EP}\n[EW  ] Error Warning                 = ${reg.EVNT.fields.EW}\n[BO  ] Bus Off                       = ${reg.EVNT.fields.BO}\n[WDI ] Watchdog Interrupt            = ${reg.EVNT.fields.WDI}\n[PEA ] Protocol Error Arbitration    = ${reg.EVNT.fields.PEA}\n[PED ] Protocol Error Data Phase     = ${reg.EVNT.fields.PED}\n[ARA ] Access to Reserved Address    = ${reg.EVNT.fields.ARA}`
+      msg: `EVNT: ${reg.EVNT.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[RXFI] RX FIFO Interrupt          = ${reg.EVNT.fields.RXFI}\n` +
+           `[TXFI] TX FIFO Interrupt          = ${reg.EVNT.fields.TXFI}\n` +
+           `[TEFI] TX Event FIFO Interrupt    = ${reg.EVNT.fields.TEFI}\n` +
+           `[HPMI] High Priority Message Int  = ${reg.EVNT.fields.HPMI}\n` +
+           `[WKUI] Wake Up Interrupt          = ${reg.EVNT.fields.WKUI}\n` +
+           `[MRAF] Message RAM Access Failure = ${reg.EVNT.fields.MRAF}\n` +
+           `[TSWE] Timestamp Wraparound Event = ${reg.EVNT.fields.TSWE}\n` +
+           `[ELO ] Error Logging Overflow     = ${reg.EVNT.fields.ELO}\n` +
+           `[EP  ] Error Passive              = ${reg.EVNT.fields.EP}\n` +
+           `[EW  ] Error Warning              = ${reg.EVNT.fields.EW}\n` +
+           `[BO  ] Bus Off                    = ${reg.EVNT.fields.BO}\n` +
+           `[WDI ] Watchdog Interrupt         = ${reg.EVNT.fields.WDI}\n` +
+           `[PEA ] Protocol Error Arbitration = ${reg.EVNT.fields.PEA}\n` +
+           `[PED ] Protocol Error Data Phase  = ${reg.EVNT.fields.PED}\n` +
+           `[ARA ] Access to Reserved Address = ${reg.EVNT.fields.ARA}`
     });
 
     // 3. Add event-specific warnings/errors
@@ -673,7 +753,8 @@ function procRegsPrtOther(reg) {
     // 2. Generate human-readable register report
     reg.LOCK.report.push({
       severityLevel: 0, // info
-      msg: `LOCK: ${reg.LOCK.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[UNLOCK] Unlock Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')}`
+      msg: `LOCK: ${reg.LOCK.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[UNLOCK] Unlock Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')}`
     });
   }
 
@@ -706,7 +787,23 @@ function procRegsPrtOther(reg) {
     // 2. Generate human-readable register report
     reg.CTRL.report.push({
       severityLevel: 0, // info
-      msg: `CTRL: ${reg.CTRL.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[NISO] Non-ISO Operation             = ${reg.CTRL.fields.NISO}\n[TXP ] Transmit Pause                = ${reg.CTRL.fields.TXP}\n[EFBI] Edge Filtering Bus Integration = ${reg.CTRL.fields.EFBI}\n[PXHD] Protocol Exception Disable    = ${reg.CTRL.fields.PXHD}\n[WMM ] Wide Message Marker           = ${reg.CTRL.fields.WMM}\n[UTSU] Use Timestamping Unit         = ${reg.CTRL.fields.UTSU}\n[BRSE] Bit Rate Switch Enable        = ${reg.CTRL.fields.BRSE}\n[LOM ] Loop Back Mode                = ${reg.CTRL.fields.LOM}\n[DAR ] Disable Auto Retransmission   = ${reg.CTRL.fields.DAR}\n[CCE ] Configuration Change Enable   = ${reg.CTRL.fields.CCE}\n[TEST] Test Mode Enable              = ${reg.CTRL.fields.TEST}\n[MON ] Bus Monitoring Mode           = ${reg.CTRL.fields.MON}\n[CSR ] Clock Stop Request            = ${reg.CTRL.fields.CSR}\n[CSA ] Clock Stop Acknowledge        = ${reg.CTRL.fields.CSA}\n[ASM ] Restricted Operation Mode     = ${reg.CTRL.fields.ASM}\n[INIT] Initialization                = ${reg.CTRL.fields.INIT}`
+      msg: `CTRL: ${reg.CTRL.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[NISO] Non-ISO Operation              = ${reg.CTRL.fields.NISO}\n` +
+           `[TXP ] Transmit Pause                 = ${reg.CTRL.fields.TXP}\n` +
+           `[EFBI] Edge Filtering Bus Integration = ${reg.CTRL.fields.EFBI}\n` +
+           `[PXHD] Protocol Exception Disable     = ${reg.CTRL.fields.PXHD}\n` +
+           `[WMM ] Wide Message Marker            = ${reg.CTRL.fields.WMM}\n` +
+           `[UTSU] Use Timestamping Unit          = ${reg.CTRL.fields.UTSU}\n` +
+           `[BRSE] Bit Rate Switch Enable         = ${reg.CTRL.fields.BRSE}\n` +
+           `[LOM ] Loop Back Mode                 = ${reg.CTRL.fields.LOM}\n` +
+           `[DAR ] Disable Auto Retransmission    = ${reg.CTRL.fields.DAR}\n` +
+           `[CCE ] Configuration Change Enable    = ${reg.CTRL.fields.CCE}\n` +
+           `[TEST] Test Mode Enable               = ${reg.CTRL.fields.TEST}\n` +
+           `[MON ] Bus Monitoring Mode            = ${reg.CTRL.fields.MON}\n` +
+           `[CSR ] Clock Stop Request             = ${reg.CTRL.fields.CSR}\n` +
+           `[CSA ] Clock Stop Acknowledge         = ${reg.CTRL.fields.CSA}\n` +
+           `[ASM ] Restricted Operation Mode      = ${reg.CTRL.fields.ASM}\n` +
+           `[INIT] Initialization                 = ${reg.CTRL.fields.INIT}`
     });
 
     // 3. Add control-specific information
@@ -737,12 +834,17 @@ function procRegsPrtOther(reg) {
     reg.FIMC.fields.FIMS = getBits(regValue, 30, 29); // Fault Injection Module Select
     reg.FIMC.fields.FIMF = getBits(regValue, 28, 24); // Fault Injection Module Function
     reg.FIMC.fields.FIMP = getBits(regValue, 23, 16); // Fault Injection Module Parameter
-    reg.FIMC.fields.FIMV = getBits(regValue, 15, 0); // Fault Injection Module Value
+    reg.FIMC.fields.FIMV = getBits(regValue, 15, 0);  // Fault Injection Module Value
 
     // 2. Generate human-readable register report
     reg.FIMC.report.push({
       severityLevel: 0, // info
-      msg: `FIMC: ${reg.FIMC.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[FIME] Fault Injection Enable        = ${reg.FIMC.fields.FIME}\n[FIMS] Fault Injection Module Select = ${reg.FIMC.fields.FIMS}\n[FIMF] Fault Injection Function      = ${reg.FIMC.fields.FIMF}\n[FIMP] Fault Injection Parameter     = ${reg.FIMC.fields.FIMP}\n[FIMV] Fault Injection Value         = ${reg.FIMC.fields.FIMV}`
+      msg: `FIMC: ${reg.FIMC.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[FIME] Fault Injection Enable        = ${reg.FIMC.fields.FIME}\n` +
+           `[FIMS] Fault Injection Module Select = ${reg.FIMC.fields.FIMS}\n` +
+           `[FIMF] Fault Injection Function      = ${reg.FIMC.fields.FIMF}\n` +
+           `[FIMP] Fault Injection Parameter     = ${reg.FIMC.fields.FIMP}\n` +
+           `[FIMV] Fault Injection Value         = ${reg.FIMC.fields.FIMV}`
     });
 
     // 3. Add fault injection warnings
@@ -776,7 +878,16 @@ function procRegsPrtOther(reg) {
     // 2. Generate human-readable register report
     reg.TEST.report.push({
       severityLevel: 0, // info
-      msg: `TEST: ${reg.TEST.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n[SVAL ] Start Value               = ${reg.TEST.fields.SVAL}\n[TXBNS] TX Buffer Number Select   = ${reg.TEST.fields.TXBNS}\n[PVAL ] Prepend Value             = ${reg.TEST.fields.PVAL}\n[TXBNP] TX Buffer Number Prepend  = ${reg.TEST.fields.TXBNP}\n[RX   ] Receive Pin               = ${reg.TEST.fields.RX}\n[TX   ] TX Pin Control            = ${reg.TEST.fields.TX}\n[LBCK ] Loop Back Mode            = ${reg.TEST.fields.LBCK}\n[SILENT] Silent Mode              = ${reg.TEST.fields.SILENT}\n[BASIC] Basic Mode                = ${reg.TEST.fields.BASIC}`
+      msg: `TEST: ${reg.TEST.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[SVAL ] Start Value              = ${reg.TEST.fields.SVAL}\n` +
+           `[TXBNS] TX Buffer Number Select  = ${reg.TEST.fields.TXBNS}\n` +
+           `[PVAL ] Prepend Value            = ${reg.TEST.fields.PVAL}\n` +
+           `[TXBNP] TX Buffer Number Prepend = ${reg.TEST.fields.TXBNP}\n` +
+           `[RX   ] Receive Pin              = ${reg.TEST.fields.RX}\n` +
+           `[TX   ] TX Pin Control           = ${reg.TEST.fields.TX}\n` +
+           `[LBCK ] Loop Back Mode           = ${reg.TEST.fields.LBCK}\n` +
+           `[SILENT] Silent Mode             = ${reg.TEST.fields.SILENT}\n` +
+           `[BASIC] Basic Mode               = ${reg.TEST.fields.BASIC}`
     });
 
     // 3. Add test mode information

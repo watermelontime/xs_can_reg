@@ -217,6 +217,13 @@ svg {
   font-weight: normal;
 }
 
+/* Enable line wrapping for the report area while preserving other pre formatting */
+#reportTextArea {
+  white-space: pre-wrap;  /* Preserves whitespace and newlines but allows wrapping */
+  word-wrap: break-word;  /* Break long words if necessary */
+  overflow-wrap: break-word;  /* Modern equivalent of word-wrap */
+}
+
 /* Responsive 3-column layout */
 .responsive-container {
     display: flex;
