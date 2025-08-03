@@ -1,9 +1,9 @@
 // X_CAN: Main script for processing CAN XL registers and calculating bit timing parameters
 import { getBits } from './func_get_bits.js';
-
+// TODO: rename to X_CAN PRT
 // ===================================================================================
 // X_CAN: Process User Register Values: parse, validate, calculate results, generate report
-export function processRegsOfX_CAN(reg) {
+export function processRegsOfX_CAN_PRT(reg) {
   // Map raw addresses to register names
   mapRawRegistersToNames(reg);
   console.log('[Info] Step 2 - Mapped register values (reg object):', reg);
@@ -17,6 +17,25 @@ export function processRegsOfX_CAN(reg) {
   // TODO: test the new function => seems to have some halucinations
 
   console.log('[Info] Registers with data and reports, reg object:', reg);
+}
+
+// ==================================================================================
+// Example Register Values for X_CAN PRT
+export function loadExampleRegisterValues() {
+  return `# X_CAN PRT example register values
+# Format to use: 0xADDR 0xVALUE
+# 0xADDR is relative X_CAN PRT address
+0x000 0x87654321
+0x004 0x00000011
+0x008 0x00000000
+0x020 0x00000100
+0x048 0x00000000
+0x04c 0x00000008
+0x060 0x00000607
+0x064 0x00fe3f3f
+0x068 0x100f0e0e
+0x06c 0x0a090808
+0x070 0x00000C04`;
 }
 
 // ===================================================================================

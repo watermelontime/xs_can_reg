@@ -112,20 +112,49 @@ th, td {
 
 /* Button and DropDownList */
 .styled-select {
-  padding: 0.2em 1em;
+  padding: 0.4em 1em;
   font-size: 1em;
+  font-weight: bold;
   border: 2px solid #005f99;
   border-radius: 6px;
-  background: linear-gradient(#ffffff, #e6f0fa);
+  /*background: linear-gradient(#ffffff, #e6f0fa);*/
+  background: #acd5ff;
   box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
   color: #004080;
   cursor: pointer;
+  margin-top: 0.5em; /* Add space above select */
+  margin-bottom: 1em; /* Add space below select */
+  height: 2.2em; /* Set consistent height */
+  box-sizing: border-box;
+}
+
+/* Container for select field and button on same line */
+.select-button-row {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}
+
+.select-button-row .styled-select {
+  margin-top: 0;
+  margin-bottom: 0;
+  flex: 1; /* Allow select to grow */
+}
+
+.select-button-row .styled-button {
+  margin-top: 0;
+  margin-left: 0;
+  margin-bottom: 0;
+  flex-shrink: 0; /* Prevent button from shrinking */
+  height: 2.2em; /* Match select height */
 }
 
 .styled-button {
-  padding: 0.2em 0.2em;
+  padding: 0.4em 0.8em;
   margin-left: 0em;
-  margin-top: 1rem; /* Add space above button */
+  margin-bottom: 1rem; /* Add space below button */
   font-size: 1em;
   font-weight: bold;
   color: white;
@@ -134,6 +163,8 @@ th, td {
   border-radius: 6px;
   box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
   cursor: pointer;
+  height: 2.2em; /* Set consistent height */
+  box-sizing: border-box;
 }
 
 .styled-button:hover {
@@ -217,7 +248,7 @@ svg {
 
 .register-textarea,
 .report-textarea {
-    width: 300px;
+    width: 100%; /* Take full column width */
     height: 450px;
     padding: 16px 20px;
     border: 2px solid #ccc;
@@ -225,6 +256,15 @@ svg {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     background-color: white;
     margin: 0; /* Reset any default margins */
+    box-sizing: border-box; /* Include padding and border in width calculation */
+}
+
+/* Make register textarea fill vertical space in register column */
+.register-column .register-textarea {
+    flex: 1; /* Fill remaining vertical space in column */
+    height: auto; /* Override fixed height */
+    min-height: 600px; /* Minimum height for usability */
+    resize: both; /* Allow both vertical and horizontal resizing */
 }
 
 .register-textarea,

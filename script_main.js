@@ -1,4 +1,6 @@
 // TODOs
+// - add new report property: highlight
+
 // - Report Parameter errors: e.g. with box mit fehlermeldungen hinzufügen
 // - show additional parameters like: retransmission count in register settings
 // - Add valid RegisterValues initially into textarea. Let this be the initialization; Remove set ExampleBTconfig()
@@ -9,7 +11,8 @@
 
 // import drawing functions
 import * as draw_svg from './draw_bits_svg.js';
-import * as x_can from './x_can.js';
+import * as m_can from './m_can.js';
+import * as x_can_prt from './x_can_prt.js';
 
 // global variable definitions
 let par_clk_freq_g = 160; // Global variable for CAN clock frequency in MHz
@@ -52,8 +55,8 @@ function init() {
   initializeClockFrequencyHtmlField();
 
   // Initialize textarea with default register values
-  initializeRegisterTextArea();
-  
+  loadRegisterValuesExample();
+    
   // Process the default register values
   processUserRegisterValues();
 }
@@ -67,6 +70,14 @@ function initEventListeners() {
     processButton.addEventListener('click', processUserRegisterValues);
   } else {
     console.warn('[Warning] Process register button not found in HTML');
+  }
+
+  // HTML BUTTON: Add event listener for the load register values example button
+  const loadExampleButton = document.getElementById('loadRegisterValuesExampleButton');
+  if (loadExampleButton) {
+    loadExampleButton.addEventListener('click', loadRegisterValuesExample);
+  } else {
+    console.warn('[Warning] Load example register button not found in HTML');
   }
 
   // HTML CLK_FREQ NPUT: Add event listener for the CAN clock frequency input field
@@ -116,30 +127,6 @@ function initializeClockFrequencyHtmlField() {
 }
 
 // ===================================================================================
-// Initialize the register textarea with default values
-function initializeRegisterTextArea() {
-  const registerTextArea = document.getElementById('userInputRegisterValues');
-  if (registerTextArea) {
-    // Default register values in new address-value format
-    const defaultRegisterValues = `0x000 0x87654321
-0x004 0x00000011
-0x008 0x00000000
-0x020 0x00000100
-0x048 0x00000000
-0x04c 0x00000008
-0x060 0x00000607
-0x064 0x00fe3f3f
-0x068 0x100f0e0e
-0x06c 0x0a090808
-0x070 0x00000C04`;
-    
-    registerTextArea.value = defaultRegisterValues;
-  } else {
-    console.warn('[Warning] initializeRegisterTextArea(): Register textarea not found in HTML');
-  }
-}
-
-// ===================================================================================
 // parseUserRegisterValues: Parse text and generate raw register array with addr and value
 function parseUserRegisterValues(userRegText, reg) {
   // Initialize parse output in reg object
@@ -157,6 +144,16 @@ function parseUserRegisterValues(userRegText, reg) {
   for (const line of lines) {
     const trimmedLine = line.trim();
     if (trimmedLine.length > 0) { // ignore empty lines
+      // Check if line is a comment (starts with '#')
+      if (trimmedLine.startsWith('#')) {
+        // Ignore comment lines - add info report for visibility
+        reg.parse_output.report.push({
+          severityLevel: 0, // info
+          msg: `Ignored comment line: "${trimmedLine}"`
+        });
+        continue; // Skip to next line
+      }
+      
       // Expected format: "0x000 0x87654321" or "000 87654321"
       const match = trimmedLine.match(/^(0x)?([0-9a-fA-F]+)\s+(0x)?([0-9a-fA-F]+)$/);
       if (match) {
@@ -693,25 +690,125 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
 }
 
 // ===================================================================================
+// Load register values example based on selected CAN IP Module
+function loadRegisterValuesExample() {
+  // Get the selected CAN IP module
+  const canIpModule = getCanIpModuleFromHTML();
+  if (!canIpModule) {
+    console.error('[Error] Could not determine CAN IP Module for loading example');
+    return;
+  }
+
+  console.log(`[Info] Loading register values example for: ${canIpModule}`);
+
+  // Get the register textarea element
+  const registerTextArea = document.getElementById('userInputRegisterValues');
+  if (!registerTextArea) {
+    console.error('[Error] Register textarea not found in HTML');
+    return;
+  }
+
+  // Call the appropriate module function to load example register values
+  let exampleRegisterValues = '';
+  
+  switch (canIpModule) {
+    case 'M_CAN':
+      if (m_can.loadExampleRegisterValues) {
+        exampleRegisterValues = m_can.loadExampleRegisterValues();
+      } else {
+        console.warn('[Warning] loadExampleRegisterValues not implemented in m_can module');
+        exampleRegisterValues = loadDefaultExample();
+      }
+      break;
+      
+    case 'X_CAN_PRT':
+      if (x_can_prt.loadExampleRegisterValues) {
+        exampleRegisterValues = x_can_prt.loadExampleRegisterValues();
+      } else {
+        console.warn('[Warning] loadExampleRegisterValues not implemented in x_can_prt module');
+        exampleRegisterValues = loadDefaultExample();
+      }
+      break;
+
+    default:
+      console.warn(`[Warning] Example register values for ${canIpModule} not yet implemented`);
+      exampleRegisterValues = loadDefaultExample();
+      break; 
+  }
+
+  // Assign the example register values to the textarea
+  registerTextArea.value = exampleRegisterValues;
+  console.log(`[Info] Loaded example register values for ${canIpModule}`);
+
+  // Process the loaded register values
+  processUserRegisterValues();
+}
+
+// ===================================================================================
+// Load default example register values (fallback)
+function loadDefaultExample() {
+  const defaultRegisterValues = `# Default example register values
+# No example exists for this CAN IP Module
+# Format to use: 0xADDR 0xVALUE
+# 0xADDR is the relative register address
+0x000 0x87654321
+0x004 0x00000011
+0x008 0x00000000
+0x020 0x00000100`;
+  
+  console.log('[Info] Generated default example register values');
+  return defaultRegisterValues;
+}
+
+// ===================================================================================
+// Get selected CAN IP Module from HTML select field
+function getCanIpModuleFromHTML() {
+  const canIpModuleSelect = document.getElementById('canIpModuleSelect');
+  if (canIpModuleSelect) {
+    const selectedModule = canIpModuleSelect.value;
+    console.log('[Info] Selected CAN IP Module:', selectedModule);
+    return selectedModule;
+  } else {
+    console.error('[Error] CAN IP Module select field not found in HTML');
+    return null;
+  }
+}
+
+// ===================================================================================
 // Process User Register Values from Text Area - Updated main function
 function processUserRegisterValues() {
   // Basic idea of this function:
   // 1. Parse user input from textarea into raw register array
   // 2. Process with the appropriate CAN IP Module function
   //    This function fills the content of the reg object with calculations
-  // 3. Generate HTML objects from reg object
-  // 4. Display data from params, results, reg in HTML fields and SVGs
+  // 3. Generate HTML Data to be displayed from reg object
+  //    and Display data from params, results, reg in HTML fields and SVGs
 
   const paramsHtml = {}; // Initialize params object for HTML display
   const resultsHtml = {}; // Initialize results object for HTML display
   const reg = {}; // Initialize register object
+  reg.general = {};
+  reg.general.report = []; // Initialize report array
+
+  // CAN IP Module determination: read value of select field from HTML
+  const canIpModule = getCanIpModuleFromHTML();
+  if (!canIpModule) {
+    // If select field is not found, log an error and exit
+    reg.general.report.push({
+      severityLevel: 3, // error
+      msg: `[Error] CAN IP Module select field not found in HTML.`
+    });
+    displayValidationReport(reg);
+    return;
+  }
+  reg.general.report.push({
+    severityLevel: 4, // infoCalculated
+    msg: `CAN IP Module "${canIpModule}" assumed for register processing`
+  });
 
   // Setup general section with clock frequency
-  reg.general = {};
   reg.general.clk_freq = par_clk_freq_g;
   reg.general.clk_period = 1000/par_clk_freq_g; // 1000 / MHz = ns
-  reg.general.report = []; // Initialize report array
-  
   // generate report for CAN Clock
   reg.general.report.push({
       severityLevel: 4, // infoCalculated
@@ -720,8 +817,8 @@ function processUserRegisterValues() {
 
   // get the text area content
   const userRegText = document.getElementById('userInputRegisterValues').value;
-  
-  // a) Step 1: Parse the text and generate raw register array
+
+  // === Step 1: Parse the text and generate raw register array =========================
   parseUserRegisterValues(userRegText, reg);
   console.log('[Info] Step 1 - Parsed raw register values (reg.raw):', reg.raw);
   // Check for parsing errors
@@ -731,15 +828,21 @@ function processUserRegisterValues() {
     return;
   }
  
-  // Step 2: Process with CAN IP Module (X_CAN) - operates solely on reg object
-  // Results are stored in reg.REGNAME.calc = {} without res_ prefix
-  x_can.processRegsOfX_CAN(reg);
+  // === Step 2: Process reg object with CAN IP Module specific function =========================
+    switch (canIpModule) {
+    case 'M_CAN': m_can.processRegsOfM_CAN(reg);
+      break;
+    case 'X_CAN_PRT': x_can_prt.processRegsOfX_CAN_PRT(reg);
+      break;
+    default:
+      reg.general.report.push({
+        severityLevel: 3, // error
+        msg: `Decoding of "${canIpModule}" is not yet implemented.`
+      });
+      break;
+  }
 
-  // Step 3: Generate HTML objects from reg object (TODO: implement these functions)
-  // generateParamsHtml(reg, paramsHtml);
-  // generateResultsHtml(reg, resultsHtml);
-
-  // Display in HTML =====================================
+  // === Step 3: Generate HTML objects from reg object & Display in HTML ========================
   // assign parameters and results to paramsHtml and resultsHtml objects (so they can be displayed in HTML later)
   assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml);
 

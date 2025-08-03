@@ -233,13 +233,21 @@
   <!-- Column 2: Register Values -->
   <div class="column register-column">
     <h3>Register Values</h3>
-    <textarea id="userInputRegisterValues" class="register-textarea" placeholder="Enter here register values.
-MODE 0x00000607
-NBTP 0x3FBF3F3F
-XBTP 0x00504F27
-PCFG 0x00000000"></textarea>
-    <br><br>
+    <label for="canIpModuleSelect">CAN IP Module (source of register dump):</label>
+    <div class="select-button-row">
+      <select id="canIpModuleSelect" class="styled-select">
+        <option value="M_CAN">M_CAN</option>
+        <option value="X_CAN_PRT" selected>X_CAN PRT</option>
+        <option value="X_CAN_MH">X_CAN MH</option>
+        <option value="X_CAN_IRC">X_CAN IRC</option>
+        <option value="XS_CAN_PRT">XS_CAN PRT</option>
+        <option value="XS_CAN_MH">XS_CAN MH</option>
+        <option value="XS_CAN_IRC">XS_CAN IRC</option>
+      </select>
+      <button type="button" id="loadRegisterValuesExampleButton" class="styled-button">load example</button>
+    </div>
     <button type="button" id="processRegisterValuesButton" class="styled-button">process register values</button>
+    <textarea id="userInputRegisterValues" class="register-textarea" placeholder="Enter here register values."></textarea>
   </div>
 
   <!-- Column 3: Validation Report -->
