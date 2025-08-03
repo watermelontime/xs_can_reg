@@ -24,6 +24,22 @@ table {
   margin-bottom: 2em;
 }
 
+/* Make BitTimingTable fit its content tightly */
+#BitTimingTable {
+  width: auto;
+  table-layout: auto;
+  max-width: none;
+  display: inline-table; /* Force table to shrink to content */
+}
+
+/* Make ClockSettingsTable fit its content tightly */
+#ClockSettingsTable {
+  width: auto;
+  table-layout: auto;
+  max-width: none;
+  display: inline-table; /* Force table to shrink to content */
+}
+
 th {
   font-weight: normal;
   color: #FFFFFF;
@@ -137,6 +153,7 @@ svg {
 .legend-item {
   display: inline-block;
   margin-right: 0.8em;
+  padding-bottom: 0.4em; /* Add space below legend items */
 }
 .legend-color {
   display: inline-block;
@@ -147,7 +164,7 @@ svg {
 }
 
 #DrawingBTLegend {
-  display: flex;
+  /*display: flex;*/
   flex-wrap: wrap;
   gap: 0.5em 0em; /* row-gap, column-gap */
   margin-top: 1em;
@@ -244,8 +261,9 @@ svg {
 }
 
 .settings-column {
-    flex: 0 0 330px; /* Fixed width - don't grow or shrink */
-    min-width: 300px; /* Reduced minimum width */
+    flex: 0 0 auto; /* Don't grow or shrink, size to content */
+    width: fit-content; /* Adapt width to content */
+    min-width: 300px; /* Minimum width for usability */
     background-color: #f0f8ff; /* Light blue background */
     border: 1px solid #e0e8f0;
 }

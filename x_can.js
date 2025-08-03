@@ -262,6 +262,8 @@ function procRegsPrtBitTiming(reg) {
     reg.general.bt_fddata.set.prop_and_phaseseg1 = reg.DBTP.fields.DTSEG1;
     reg.general.bt_fddata.set.phaseseg2 = reg.DBTP.fields.DTSEG2;
     reg.general.bt_fddata.set.sjw = reg.DBTP.fields.DSJW;
+    // set brp (as a copy of arb)
+    reg.general.bt_fddata.set.brp = reg.general.bt_arb.set.brp !== undefined ? reg.general.bt_arb.set.brp : 0; // X_CAN uses same BRP as in arbitration phase
 
     // different output based on FDOE
     if (!reg.MODE || !reg.MODE.fields || reg.MODE.fields.FDOE == 0) {
@@ -284,8 +286,9 @@ function procRegsPrtBitTiming(reg) {
       });
 
       // 4. Calculate FD data phase results and store in general structure
+      reg.general.bt_fddata.res.tq_len = reg.general.clk_period * reg.general.bt_fddata.set.brp;
       reg.general.bt_fddata.res.tq_per_bit = 1 + reg.general.bt_fddata.set.prop_and_phaseseg1 + reg.general.bt_fddata.set.phaseseg2;
-      reg.general.bt_fddata.res.bitrate = reg.general.clk_freq / (reg.general.bt_arb.set.brp * reg.general.bt_fddata.res.tq_per_bit);
+      reg.general.bt_fddata.res.bitrate = reg.general.clk_freq / (reg.general.bt_fddata.set.brp * reg.general.bt_fddata.res.tq_per_bit);
       reg.general.bt_fddata.res.bit_length = 1000 / reg.general.bt_fddata.res.bitrate;
       reg.general.bt_fddata.res.sp = 100 - 100 * reg.general.bt_fddata.set.phaseseg2 / reg.general.bt_fddata.res.tq_per_bit;
       
@@ -369,6 +372,8 @@ function procRegsPrtBitTiming(reg) {
     reg.general.bt_xldata.set.prop_and_phaseseg1 = reg.XBTP.fields.XTSEG1;
     reg.general.bt_xldata.set.phaseseg2 = reg.XBTP.fields.XTSEG2;
     reg.general.bt_xldata.set.sjw = reg.XBTP.fields.XSJW;
+    // set brp (as a copy of arb)
+    reg.general.bt_xldata.set.brp = reg.general.bt_arb.set.brp !== undefined ? reg.general.bt_arb.set.brp : 0; // X_CAN uses same BRP as in arbitration phase
 
     // different output based on XLOE
     if (!reg.MODE || !reg.MODE.fields || reg.MODE.fields.XLOE == 0) {
@@ -391,8 +396,9 @@ function procRegsPrtBitTiming(reg) {
       });
 
       // 4. Calculate XL data phase results and store in general structure
+      reg.general.bt_xldata.res.tq_len = reg.general.clk_period * reg.general.bt_xldata.set.brp;
       reg.general.bt_xldata.res.tq_per_bit = 1 + reg.general.bt_xldata.set.prop_and_phaseseg1 + reg.general.bt_xldata.set.phaseseg2;
-      reg.general.bt_xldata.res.bitrate = reg.general.clk_freq / (reg.general.bt_arb.set.brp * reg.general.bt_xldata.res.tq_per_bit);
+      reg.general.bt_xldata.res.bitrate = reg.general.clk_freq / (reg.general.bt_xldata.set.brp * reg.general.bt_xldata.res.tq_per_bit);
       reg.general.bt_xldata.res.bit_length = 1000 / reg.general.bt_xldata.res.bitrate;
       reg.general.bt_xldata.res.sp = 100 - 100 * reg.general.bt_xldata.set.phaseseg2 / reg.general.bt_xldata.res.tq_per_bit;
       
@@ -665,7 +671,7 @@ function procRegsPrtOther(reg) {
       });
     }
   }
-// TODO AB HIER
+// TODO AB HIER: Check the decoding of the registers. It The code is written by copilot.
   // === EVNT: Event Status Flags Register ================================
   if ('EVNT' in reg && reg.EVNT.int32 !== undefined) {
     const regValue = reg.EVNT.int32;

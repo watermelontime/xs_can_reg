@@ -19,7 +19,7 @@
   <!-- Column 1: Settings -->
   <div class="column settings-column">
     <h3>CAN Clock settings</h3>
-    <table>
+    <table id="ClockSettingsTable">
       <thead>
         <tr>
           <th></th>
@@ -44,6 +44,7 @@
     <h3>CAN XL Bit Timing</h3>
     <!-- Bit Timing Drawing -->
     <svg id="DrawingBTArb" width="342" height="60"></svg>
+    <svg id="DrawingBTFDdata" width="342" height="60"></svg>
     <svg id="DrawingBTXLdata" width="342" height="60"></svg>
     <svg id="DrawingBTXLdataPWM" width="342" height="60"></svg>
 
@@ -53,6 +54,7 @@
       <!-- <div class="legend-item"><span class="legend-color" style="background:#4CAF50"></span>PropSeg</div> -->
       <div class="legend-item"><span class="legend-color" style="background:#2196F3"></span>PropSeg+PhaseSeg1</div>
       <div class="legend-item"><span class="legend-color" style="background:#FF0000"></span>SP</div>
+      <br>
       <div class="legend-item"><span class="legend-color" style="background:#FF9800"></span>PhaseSeg2</div>
       <div class="legend-item"><span class="legend-color" style="background:#800080"></span>SSP Offset</div>
       <div class="legend-item"><span class="legend-color" style="background:#999999"></span>SJW</div>
@@ -62,11 +64,12 @@
     <table id="BitTimingTable">
       <thead>
         <tr>
-          <th colspan="3" class="headline_in_table">Bit Timing Properties</th>
+          <th colspan="4" class="headline_in_table">Bit Timing Properties</th>
         </tr>
         <tr>
           <th></th>
           <th>Arb.<br>phase</th>
+          <th>FD Data<br>phase</th>
           <th>XL Data<br>phase</th>
         </tr>
       </thead>
@@ -74,86 +77,102 @@
         <tr>
           <td>Bit-rate [Mbit/s]</td>
           <td><input type="text" id="res_bitrate_arb" class="result-field" readonly /></td>
+          <td><input type="text" id="res_bitrate_datfd" class="result-field" readonly /></td>
           <td><input type="text" id="res_bitrate_datxl" class="result-field" readonly /></td>
         </tr>
         <tr>
           <td>SP [%]</td>
           <td><input type="text" id="res_sp_arb" class="result-field" readonly /></td>
+          <td><input type="text" id="res_sp_datfd" class="result-field" readonly /></td>
           <td><input type="text" id="res_sp_datxl" class="result-field" readonly /></td>
         </tr>
         <tr>
           <td>SSP [%]</td>
           <td>---</td>
+          <td><input type="text" id="res_ssp_datfd" class="result-field" readonly /></td>
           <td><input type="text" id="res_ssp_datxl" class="result-field" readonly /></td>
         </tr>
         <tr>
           <td>tq per bit time</td>
           <td><input type="text" id="res_tqperbit_arb" class="result-field" readonly /></td>
+          <td><input type="text" id="res_tqperbit_datfd" class="result-field" readonly /></td>
           <td><input type="text" id="res_tqperbit_datxl" class="result-field" readonly /></td>
         </tr>
         <tr>
           <td>tq length [ns]</td>
-          <td colspan="2" class="table_colspan_center"><input type="text" id="res_tqlen" class="result-field" readonly /></td>
+          <td><input type="text" id="res_tqlen_arb" class="result-field" readonly /></td>
+          <td><input type="text" id="res_tqlen_datfd" class="result-field" readonly /></td>
+          <td><input type="text" id="res_tqlen_datxl" class="result-field" readonly /></td>
         </tr>
         <tr>
           <td>Bit length [ns]</td>
           <td><input type="text" id="res_bitlength_arb" class="result-field" readonly /></td>
+          <td><input type="text" id="res_bitlength_datfd" class="result-field" readonly /></td>
           <td><input type="text" id="res_bitlength_datxl" class="result-field" readonly /></td>
         </tr>
       </tbody>
       <thead>
         <tr>
-          <th colspan="3" class="headline_in_table">Bit timing settings</th>
+          <th colspan="4" class="headline_in_table">Bit timing settings</th>
         </tr>
         <tr>
           <th></th>
           <th>Arb.</th>
+          <th>FD Data</th>
           <th>XL Data</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td>BRP</td>
-          <td colspan="2" class="table_colspan_center"><input type="text" id="par_brp" class="input-field" readonly /></td>
+          <td><input type="text" id="par_brp_arb" class="input-field" readonly /></td>
+          <td><input type="text" id="par_brp_datfd" class="input-field" readonly /></td>
+          <td><input type="text" id="par_brp_datxl" class="input-field" readonly /></td>
         </tr>
         <tr>
           <td>Prop+PhaseSeg1</td>
           <td><input type="text" id="par_prop_and_phaseseg1_arb" class="input-field" readonly /></td>
+          <td><input type="text" id="par_prop_and_phaseseg1_datfd" class="input-field" readonly /></td>
           <td><input type="text" id="par_prop_and_phaseseg1_datxl" class="input-field" readonly /></td>
         </tr>
         <tr>
           <td>PhaseSeg2</td>
           <td><input type="text" id="par_phaseseg2_arb" class="input-field" readonly /></td>
+          <td><input type="text" id="par_phaseseg2_datfd" class="input-field" readonly /></td>
           <td><input type="text" id="par_phaseseg2_datxl" class="input-field" readonly /></td>
         </tr>
         <tr>
           <td>SJW</td>
           <td><input type="text" id="par_sjw_arb" class="input-field" readonly /></td>
+          <td><input type="text" id="par_sjw_datfd" class="input-field" readonly /></td>
           <td><input type="text" id="par_sjw_datxl" class="input-field" readonly /></td>
         </tr>
         <tr>
           <td>TDC</td>
           <td>---</td>
-          <td><input type="checkbox" id="par_tdc_datxl" class="input-field" disabled /></td>
+          <td colspan="2" class="table_colspan_center"><input type="checkbox" id="par_tdc_datfdxl" class="input-field" disabled /></td>
         </tr>
         <tr>
           <td>SSP Offset</td>
           <td>---</td>
+          <td><input type="text" id="par_sspoffset_datfd" class="input-field" readonly /></td>
           <td><input type="text" id="par_sspoffset_datxl" class="input-field" readonly /></td>
         </tr>
         <tr>
           <td>TMS</td>
           <td>---</td>
-          <td><input type="checkbox" id="par_tms" class="input-field" disabled /></td>
+          <td>---</td>
+          <td><input type="checkbox" id="par_tms_datxl" class="input-field" disabled /></td>
         </tr>
       </tbody>
       <thead>
         <tr>
-          <th colspan="3" class="headline_in_table">PWM settings</th>
+          <th colspan="4" class="headline_in_table">PWM settings</th>
         </tr>
         <tr>
           <th></th>
           <th>Arb.</th>
+          <th>FD Data</th>
           <th>XL Data</th>
         </tr>
       </thead>
@@ -161,26 +180,30 @@
         <tr>
           <td>PWMO</td>
           <td>---</td>
+          <td>---</td>
           <td><input type="text" id="par_pwmo" class="input-field" readonly /></td>
         </tr>
         <tr>
           <td>PWMS</td>
+          <td>---</td>
           <td>---</td>
           <td><input type="text" id="par_pwms" class="input-field" readonly /></td>
         </tr>
         <tr>
           <td>PWML</td>
           <td>---</td>
+          <td>---</td>
           <td><input type="text" id="par_pwml" class="input-field" readonly /></td>
         </tr>
       </tbody>
       <thead>
         <tr>
-          <th colspan="3" class="headline_in_table">PWM properties</th>
+          <th colspan="4" class="headline_in_table">PWM properties</th>
         </tr>
         <tr>
           <th></th>
           <th>Arb.</th>
+          <th>FD Data</th>
           <th>XL Data</th>
         </tr>
       </thead>
@@ -188,15 +211,18 @@
         <tr>
           <td>PWM length [ns]</td>
           <td>---</td>
+          <td>---</td>
           <td><input type="text" id="res_pwm_symbol_len_ns_datxl" class="result-field" readonly /></td>
         </tr>
         <tr>
-          <td>PWM length [cycle]</td>
+          <td>PWM length [clk]</td>
+          <td>---</td>
           <td>---</td>
           <td><input type="text" id="res_pwm_symbol_len_clk_cycles_datxl" class="result-field" readonly /></td>
         </tr>
         <tr>
-          <td>PWMs per bit bime</td>
+          <td>PWMs per bit</td>
+          <td>---</td>
           <td>---</td>
           <td><input type="text" id="res_pwm_symbols_per_bit_time_datxl" class="result-field" readonly /></td>
         </tr>

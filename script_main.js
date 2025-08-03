@@ -19,26 +19,24 @@ const floatParams = [
 ];
 
 const checkboxParams = [
-  'par_tms',
-  'par_tdc_datxl'
+  'par_tms_datxl',
+  'par_tdc_datfdxl'
 ];
 
 const floatResults = [
   'res_clk_period',
   'res_bitrate_arb',
+  'res_bitrate_datfd',
   'res_bitrate_datxl',
   'res_sp_arb',
   'res_sp_datxl',
+  'res_sp_datfd',
+  'res_ssp_datfd',
   'res_ssp_datxl',
-  'res_tqlen',
+  'res_tqlen_arb',
+  'res_tqlen_datfd',
+  'res_tqlen_datxl',
   'res_pwm_symbol_len_ns_datxl'
-];
-
-const exludeFromPrintResults = [
-  'res_sspoffset_datxl',
-  'res_pwmo_datxl',
-  'res_pwms_datxl',
-  'res_pwml_datxl'
 ];
 
 // when document is loaded: initialize page
@@ -360,12 +358,6 @@ function displayParameters(params) {
 function displayResults(results) {
 
   for (const [id, val] of Object.entries(results)) {
-    if (exludeFromPrintResults.includes(id)) {
-      // this result is not to be printed, since not HTML field exists for it
-      continue; // skip to next iteration
-      // TODO: generate to result objects, internal/external results, instead of not printing some, or add flag noprint = true
-    }
-
     const field = document.getElementById(id);
     // check if field exists
     if (!field) {
@@ -394,6 +386,16 @@ function displayResults(results) {
 // Display SVGs in HTML
 function displaySVGs(reg) {
 
+  // Show SSP optionally, if TDC is enabled and TMS is disabled: generate variable here and use variable in drawBitTiming()
+  let showSSP = false;
+  if (reg.general.bt_global &&
+      reg.general.bt_global.set &&
+      reg.general.bt_global.set.tdc !== undefined && reg.general.bt_global.set.tdc === true &&
+      reg.general.bt_global.set.tms !== undefined && reg.general.bt_global.set.tms !== true) {
+    showSSP = true;
+  }
+
+  // ARBITRATION
   // check if all input parameters are defined for calling drawBitTiming()
   if (reg.general && reg.general.bt_arb && reg.general.bt_arb.set && reg.general.bt_arb.res &&
       reg.general.bt_arb.set.prop_and_phaseseg1 !== undefined &&
@@ -420,6 +422,37 @@ function displaySVGs(reg) {
     );
   }
 
+  // DATA FD
+  // check if all input parameters are defined for calling drawBitTiming()
+  if (reg.general && reg.general.bt_fddata && reg.general.bt_fddata.set && reg.general.bt_fddata.res &&
+      reg.general.bt_global && reg.general.bt_global.set &&
+      reg.general.bt_fddata.set.prop_and_phaseseg1 !== undefined &&
+      reg.general.bt_fddata.set.phaseseg2 !== undefined &&
+      reg.general.bt_fddata.res.sp !== undefined &&
+      reg.general.bt_fddata.set.sjw !== undefined &&
+      reg.general.bt_fddata.res.ssp !== undefined &&
+      reg.general.bt_global.set.tdc !== undefined) {
+    // Draw Bit Timing: FD Data Phase
+    draw_svg.drawBitTiming(
+      0,
+      reg.general.bt_fddata.set.prop_and_phaseseg1,
+      reg.general.bt_fddata.set.phaseseg2,
+      reg.general.bt_fddata.res.sp, // Sample Point in % of Bit Time
+      reg.general.bt_fddata.set.sjw, // SJW Length in TQ
+      reg.general.bt_fddata.res.ssp, // SSP in % of Bit Time
+      showSSP, // TDC enabled (true) or disabled (false)
+      'DrawingBTFDdata', // name of SVG element in HTML
+      'FD Data Phase' // label in Drawing
+    ); 
+  } else { // draw error message
+    draw_svg.drawErrorMessage(
+      'DrawingBTFDdata',
+      'FD Data Phase',
+      'Missing parameters'
+    );
+  }
+
+  // DATA XL
   // check if all input parameters are defined for calling drawBitTiming()
   if (reg.general && reg.general.bt_xldata && reg.general.bt_xldata.set && reg.general.bt_xldata.res &&
       reg.general.bt_global && reg.general.bt_global.set &&
@@ -437,7 +470,7 @@ function displaySVGs(reg) {
       reg.general.bt_xldata.res.sp, // Sample Point in % of Bit Time
       reg.general.bt_xldata.set.sjw, // SJW Length in TQ
       reg.general.bt_xldata.res.ssp, // SSP in % of Bit Time
-      reg.general.bt_global.set.tdc, // TDC enabled (true) or disabled (false)
+      showSSP, // TDC enabled (true) or disabled (false)
       'DrawingBTXLdata', // name of SVG element in HTML
       'XL Data Phase' // label in Drawing
     ); 
@@ -449,6 +482,8 @@ function displaySVGs(reg) {
     );
   }
 
+  // DATA XL PWM symbols
+  // Check if all input parameters are defined for calling drawPWMsymbols()
   if (reg.general && reg.general.bt_global && reg.general.bt_global.set &&
       reg.general.bt_xldata && reg.general.bt_xldata.set && reg.general.bt_xldata.res &&
       reg.general.bt_global.set.tms !== undefined && reg.general.bt_global.set.tms === true &&
@@ -481,30 +516,56 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
   // paramsHtml['par_clk_freq'] = reg.general.clk_freq;
 
   if (reg.general && reg.general.bt_global && reg.general.bt_global.set) {
-    paramsHtml['par_tdc_datxl'] = reg.general.bt_global.set.tdc !== undefined ? reg.general.bt_global.set.tdc : false; // TDC enabled or disabled
-    paramsHtml['par_tms'] = reg.general.bt_global.set.tms !== undefined ? reg.general.bt_global.set.tms : false; // TMS enabled or disabled
+    paramsHtml['par_tdc_datfdxl'] = reg.general.bt_global.set.tdc !== undefined ? reg.general.bt_global.set.tdc : false; // TDC enabled or disabled
+    paramsHtml['par_tms_datxl'] = reg.general.bt_global.set.tms !== undefined ? reg.general.bt_global.set.tms : false; // TMS enabled or disabled
   } else {
     // Default values if global settings are not set
-    paramsHtml['par_tdc_datxl'] = false; // TDC disabled by default 
-    paramsHtml['par_tms'] = false; // TMS disabled by default
+    paramsHtml['par_tdc_datfdxl'] = false; // TDC disabled by default 
+    paramsHtml['par_tms_datxl'] = false; // TMS disabled by default
   }
 
   // Assign bit timing parameters from arbitration phase
   if (reg.general.bt_arb && reg.general.bt_arb.set) {
-    paramsHtml['par_brp'] = reg.general.bt_arb.set.brp !== undefined ? reg.general.bt_arb.set.brp : 'no reg';
+    paramsHtml['par_brp_arb'] = reg.general.bt_arb.set.brp !== undefined ? reg.general.bt_arb.set.brp : 'no reg';
     paramsHtml['par_prop_and_phaseseg1_arb'] = reg.general.bt_arb.set.prop_and_phaseseg1 !== undefined ? reg.general.bt_arb.set.prop_and_phaseseg1 : 'no reg';
     paramsHtml['par_phaseseg2_arb'] = reg.general.bt_arb.set.phaseseg2 !== undefined ? reg.general.bt_arb.set.phaseseg2 : 'no reg';
     paramsHtml['par_sjw_arb'] = reg.general.bt_arb.set.sjw !== undefined ? reg.general.bt_arb.set.sjw : 'no reg';
   } else {
     // Default values if arbitration phase is not set
-    paramsHtml['par_brp'] = 'no reg';
+    paramsHtml['par_brp_arb'] = 'no reg';
     paramsHtml['par_prop_and_phaseseg1_arb'] = 'no reg';
     paramsHtml['par_phaseseg2_arb'] = 'no reg';
     paramsHtml['par_sjw_arb'] = 'no reg';
   }
 
+  // Assign bit timing parameters from FD data phase
+  if (reg.general.bt_fddata && reg.general.bt_fddata.set) {
+    paramsHtml['par_brp_datfd'] = reg.general.bt_fddata.set.brp !== undefined ? reg.general.bt_fddata.set.brp : 'no reg';
+    paramsHtml['par_prop_and_phaseseg1_datfd'] = reg.general.bt_fddata.set.prop_and_phaseseg1 !== undefined ? reg.general.bt_fddata.set.prop_and_phaseseg1 : 'no reg';
+    paramsHtml['par_phaseseg2_datfd'] = reg.general.bt_fddata.set.phaseseg2 !== undefined ? reg.general.bt_fddata.set.phaseseg2 : 'no reg';
+    paramsHtml['par_sjw_datfd'] = reg.general.bt_fddata.set.sjw !== undefined ? reg.general.bt_fddata.set.sjw : 'no reg';
+    if (reg.general.bt_global.set.tms === true) {
+      // TMS enabled, assign default value
+      paramsHtml['par_sspoffset_datfd'] = 'TMS on';
+    } else if (reg.general.bt_global.set.tdc === true) {
+      // TDC enabled, assign SSP offset
+      paramsHtml['par_sspoffset_datfd'] = reg.general.bt_fddata.set.ssp_offset !== undefined ? reg.general.bt_fddata.set.ssp_offset : 'no reg';
+    } else {
+      // TDC disabled, assign default value
+      paramsHtml['par_sspoffset_datfd'] = 'TDC off';
+    }
+  } else {
+    // Default values if FD data phase is not set
+    paramsHtml['par_brp_datfd'] = 'no reg';
+    paramsHtml['par_prop_and_phaseseg1_datfd'] = 'no reg';
+    paramsHtml['par_phaseseg2_datfd'] = 'no reg';
+    paramsHtml['par_sjw_datfd'] = 'no reg'; 
+    paramsHtml['par_sspoffset_datfd'] = 'no reg';
+  }
+
   // Assign bit timing parameters from XL data phase
   if (reg.general.bt_xldata && reg.general.bt_xldata.set) {
+    paramsHtml['par_brp_datxl'] = reg.general.bt_xldata.set.brp !== undefined ? reg.general.bt_xldata.set.brp : 'no reg';
     paramsHtml['par_prop_and_phaseseg1_datxl'] = reg.general.bt_xldata.set.prop_and_phaseseg1 !== undefined ? reg.general.bt_xldata.set.prop_and_phaseseg1 : 'no reg';
     paramsHtml['par_phaseseg2_datxl'] = reg.general.bt_xldata.set.phaseseg2 !== undefined ? reg.general.bt_xldata.set.phaseseg2 : 'no reg';
     paramsHtml['par_sjw_datxl'] = reg.general.bt_xldata.set.sjw !== undefined ? reg.general.bt_xldata.set.sjw : 'no reg';
@@ -520,6 +581,7 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
     }
   } else {
     // Default values if data phase is not set
+    paramsHtml['par_brp_datxl'] = 'no reg';
     paramsHtml['par_prop_and_phaseseg1_datxl'] = 'no reg';
     paramsHtml['par_phaseseg2_datxl'] = 'no reg';
     paramsHtml['par_sjw_datxl'] = 'no reg'; 
@@ -548,14 +610,32 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
     resultsHtml['res_sp_arb'] = reg.general.bt_arb.res.sp !== undefined ? reg.general.bt_arb.res.sp : 'no reg';
     resultsHtml['res_tqperbit_arb'] = reg.general.bt_arb.res.tq_per_bit !== undefined ? reg.general.bt_arb.res.tq_per_bit : 'no reg';
     resultsHtml['res_bitlength_arb'] = reg.general.bt_arb.res.bit_length !== undefined ? reg.general.bt_arb.res.bit_length : 'no reg';
-    resultsHtml['res_tqlen'] = reg.general.bt_arb.res.tq_len !== undefined ? reg.general.bt_arb.res.tq_len : 'no reg';
+    resultsHtml['res_tqlen_arb'] = reg.general.bt_arb.res.tq_len !== undefined ? reg.general.bt_arb.res.tq_len : 'no reg';
   } else {
     // Default values if arbitration phase is not set
     resultsHtml['res_bitrate_arb'] = 'no reg';
     resultsHtml['res_sp_arb'] = 'no reg';
     resultsHtml['res_tqperbit_arb'] = 'no reg';
     resultsHtml['res_bitlength_arb'] = 'no reg';
-    resultsHtml['res_tqlen'] = 'no reg';
+    resultsHtml['res_tqlen_arb'] = 'no reg';
+  } 
+
+  // Assign bit timing results from FD data phase
+  if (reg.general.bt_fddata && reg.general.bt_fddata.res) {
+    resultsHtml['res_bitrate_datfd'] = reg.general.bt_fddata.res.bitrate !== undefined ? reg.general.bt_fddata.res.bitrate : 'no reg';
+    resultsHtml['res_sp_datfd'] = reg.general.bt_fddata.res.sp !== undefined ? reg.general.bt_fddata.res.sp : 'no reg';
+    resultsHtml['res_ssp_datfd'] = reg.general.bt_fddata.res.ssp !== undefined ? reg.general.bt_fddata.res.ssp : 'no reg';
+    resultsHtml['res_tqperbit_datfd'] = reg.general.bt_fddata.res.tq_per_bit !== undefined ? reg.general.bt_fddata.res.tq_per_bit : 'no reg';
+    resultsHtml['res_bitlength_datfd'] = reg.general.bt_fddata.res.bit_length !== undefined ? reg.general.bt_fddata.res.bit_length : 'no reg';
+    resultsHtml['res_tqlen_datfd'] = reg.general.bt_fddata.res.tq_len !== undefined ? reg.general.bt_fddata.res.tq_len : 'no reg';
+  } else {
+    // Default values if FD data phase is not set
+    resultsHtml['res_bitrate_datfd'] = 'no reg';
+    resultsHtml['res_sp_datfd'] = 'no reg';
+    resultsHtml['res_ssp_datfd'] = 'no reg';
+    resultsHtml['res_tqperbit_datfd'] = 'no reg';
+    resultsHtml['res_bitlength_datfd'] = 'no reg';
+    resultsHtml['res_tqlen_datfd'] = 'no reg';
   } 
 
   // Assign bit timing results from XL data phase
@@ -565,6 +645,7 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
     resultsHtml['res_ssp_datxl'] = reg.general.bt_xldata.res.ssp !== undefined ? reg.general.bt_xldata.res.ssp : 'no reg';
     resultsHtml['res_tqperbit_datxl'] = reg.general.bt_xldata.res.tq_per_bit !== undefined ? reg.general.bt_xldata.res.tq_per_bit : 'no reg';
     resultsHtml['res_bitlength_datxl'] = reg.general.bt_xldata.res.bit_length !== undefined ? reg.general.bt_xldata.res.bit_length : 'no reg';
+    resultsHtml['res_tqlen_datxl'] = reg.general.bt_xldata.res.tq_len !== undefined ? reg.general.bt_xldata.res.tq_len : 'no reg';
   } else {
     // Default values if data phase is not set
     resultsHtml['res_bitrate_datxl'] = 'no reg';
@@ -572,6 +653,7 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
     resultsHtml['res_ssp_datxl'] = 'no reg';
     resultsHtml['res_tqperbit_datxl'] = 'no reg';
     resultsHtml['res_bitlength_datxl'] = 'no reg';
+    resultsHtml['res_tqlen_datxl'] = 'no reg';
   } 
 
   // Assign PWM results from XL data phase
