@@ -1,5 +1,7 @@
 // X_CAN: Main script for processing CAN XL registers and calculating bit timing parameters
 import { getBits } from './func_get_bits.js';
+import { sevC } from './func_get_bits.js';
+
 // TODO: rename to X_CAN PRT
 // ===================================================================================
 // X_CAN: Process User Register Values: parse, validate, calculate results, generate report
@@ -83,7 +85,7 @@ function mapRawRegistersToNames(reg) {
       mappedCount++;
       
       reg.parse_output.report.push({
-        severityLevel: 0, // info
+        severityLevel: sevC.Info, // info
         msg: `Mapped reg. address 0x${rawReg.addr.toString(16).toUpperCase().padStart(2, '0')} to ${regName} (${mapping.longName})`
       });
     } else {
@@ -91,7 +93,7 @@ function mapRawRegistersToNames(reg) {
       unmappedCount++;
       
       reg.parse_output.report.push({
-        severityLevel: 2, // warning
+        severityLevel: sevC.Warn, // warning
         msg: `Unknown register address: 0x${rawReg.addr.toString(16).toUpperCase().padStart(2, '0')} - register will be ignored`
       });
       reg.parse_output.hasWarnings = true;
@@ -100,7 +102,7 @@ function mapRawRegistersToNames(reg) {
   
   // Add summary message
   reg.parse_output.report.push({
-    severityLevel: 0, // info
+    severityLevel: sevC.Info, // info
     msg: `Address mapping completed: ${mappedCount} mapped, ${unmappedCount} unknown`
   });
   
@@ -164,8 +166,8 @@ function procRegsPrtBitTiming(reg) {
     reg.general.bt_global.set.xl  = (reg.MODE.fields.XLOE === 1); // XL Operation Enable when XLOE=1
 
     // 3. Generate human-readable register report
-    reg.MODE.report.push({
-        severityLevel: 0, // info
+  reg.MODE.report.push({
+    severityLevel: sevC.Info, // info
         msg: `MODE: ${reg.MODE.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
              `[TSSE] Transceiver Sharing Switch Enable            = ${reg.MODE.fields.TSSE}\n` +
              `[LCHB] FD Light Commander High Bit Rate Mode Enable = ${reg.MODE.fields.LCHB}\n` +
@@ -186,7 +188,7 @@ function procRegsPrtBitTiming(reg) {
     // Check: FDOE is set when XLOE is also set
     if (reg.MODE.fields.FDOE === 0 && reg.MODE.fields.XLOE === 1) {
       reg.MODE.report.push({
-        severityLevel: 3, // error
+        severityLevel: sevC.Error, // error
         msg: `MODE: FDOE (${reg.MODE.fields.FDOE}) is not set when XLOE (${reg.MODE.fields.XLOE}) is set. FDOE must be set to 1 when XLOE is set to 1.`
       });
     }
@@ -194,7 +196,7 @@ function procRegsPrtBitTiming(reg) {
     // Check: TMS=1 while ES=0
     if (reg.MODE.fields.XLTR === 1 && reg.MODE.fields.EFDI === 0) {
       reg.MODE.report.push({
-        severityLevel: 3, // error
+        severityLevel: sevC.Error, // error
         msg: `MODE: TMS=ON while ES=OFF. This is not supported by X_CAN. XLTR (${reg.MODE.fields.XLTR}), EFDI (${reg.MODE.fields.EFDI})`
       });
     }
@@ -221,8 +223,8 @@ function procRegsPrtBitTiming(reg) {
     reg.general.bt_arb.set.sjw = reg.NBTP.fields.NSJW;
 
     // 3. Generate human-readable register report
-    reg.NBTP.report.push({
-        severityLevel: 0, // info
+  reg.NBTP.report.push({
+    severityLevel: sevC.Info, // info
         msg: `NBTP: ${reg.NBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
              `[BRP   ] Bit Rate Prescaler     = ${reg.NBTP.fields.BRP}\n` +
              `[NTSEG1] Nominal Time Segment 1 = ${reg.NBTP.fields.NTSEG1}\n` +
@@ -238,8 +240,8 @@ function procRegsPrtBitTiming(reg) {
     reg.general.bt_arb.res.sp = 100 - 100 * reg.general.bt_arb.set.phaseseg2 / reg.general.bt_arb.res.tq_per_bit;
     
     // 5. Generate Report about settings
-    reg.NBTP.report.push({
-        severityLevel: 4, // infoCalculated
+  reg.NBTP.report.push({
+    severityLevel: sevC.InfoCalc, // infoCalculated
         msg: `Nominal Bitrate (Arbitration Phase)\n` +
              `Bitrate    = ${reg.general.bt_arb.res.bitrate} Mbit/s\n` +
              `Bit Length = ${reg.general.bt_arb.res.bit_length} ns\n` +
@@ -250,7 +252,7 @@ function procRegsPrtBitTiming(reg) {
     // Check: check for SJW <= min(PhaseSeg1, PhaseSeg2)?
     if (reg.general.bt_arb.set.sjw > reg.general.bt_arb.set.phaseseg2) {
       reg.NBTP.report.push({
-        severityLevel: 3, // error
+        severityLevel: sevC.Error, // error
         msg: `NBTP: SJW (${reg.general.bt_arb.set.sjw}) > PhaseSeg2 (${reg.general.bt_arb.set.phaseseg2}). ISO 11898-1 requires SJW <= PhaseSeg2.`
       });
     }
@@ -258,7 +260,7 @@ function procRegsPrtBitTiming(reg) {
     // Check: check for PhaseSeg2 >= 2
     if (reg.general.bt_arb.set.phaseseg2 < 2) {
       reg.NBTP.report.push({
-        severityLevel: 3, // error
+        severityLevel: sevC.Error, // error
         msg: `NBTP: PhaseSeg2 (${reg.general.bt_arb.set.phaseseg2}) < 2. ISO 11898-1 requires a value >= 2.`
       });
     }
@@ -266,7 +268,7 @@ function procRegsPrtBitTiming(reg) {
     // Check: SJW choosen as large as possible?
     if (reg.general.bt_arb.set.sjw < reg.general.bt_arb.set.phaseseg2) {
       reg.NBTP.report.push({
-        severityLevel: 2, // warning
+        severityLevel: sevC.Warn, // warning
         msg: `NBTP: SJW (${reg.general.bt_arb.set.sjw}) < PhaseSeg2 (${reg.general.bt_arb.set.phaseseg2}). It is recommended to use SJW=PhaseSeg2.`
       });
     }
@@ -274,7 +276,7 @@ function procRegsPrtBitTiming(reg) {
     // Check: Number of TQ large enough?
     if (reg.general.bt_arb.res.tq_per_bit < 8) {
       reg.NBTP.report.push({
-        severityLevel: 2, // warning
+        severityLevel: sevC.Warn, // warning
         msg: `NBTP: Number of TQ/Bit is small. If possible, increase the TQ/Bit by reducing BRP or increasing the CAN Clock Freq.`
       });
     }
@@ -293,7 +295,7 @@ function procRegsPrtBitTiming(reg) {
     reg.DBTP.fields.DTSEG1 = getBits(regValue, 23, 16) + 1;  // CAN FD Data Time Segment 1
     reg.DBTP.fields.DTSEG2 = getBits(regValue, 14, 8) + 1;   // CAN FD Data Time Segment 2
     reg.DBTP.fields.DSJW   = getBits(regValue, 6, 0) + 1;    // CAN FD Data Synchronization Jump Width
-
+    // TODO: move storage of global parameters into area after check "FD enabled"
     // 2. Store DBTP bit timing settings in general structure
     reg.general.bt_fddata.set.ssp_offset = reg.DBTP.fields.DTDCO;
     reg.general.bt_fddata.set.prop_and_phaseseg1 = reg.DBTP.fields.DTSEG1;
@@ -306,7 +308,7 @@ function procRegsPrtBitTiming(reg) {
     if (reg.general.bt_global.set.fd !== undefined && reg.general.bt_global.set.fd === false) {
       // 3. Generate human-readable register report
       reg.DBTP.report.push({
-        severityLevel: 2, // warning
+        severityLevel: sevC.Warn, // warning
         msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
              `FD Operation is disabled: a) MODE.FDOE=0 OR b) TMS=ON or ES=OFF OR c) MODE register not present`
       });
@@ -314,13 +316,13 @@ function procRegsPrtBitTiming(reg) {
     } else { // FD enabled (or MODE register not present)
       // 3. Generate human-readable register report
       reg.DBTP.report.push({
-          severityLevel: 0, // info
-          msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-               `[DTDCO ] FD TDC Offset     = ${reg.DBTP.fields.DTDCO}\n` +
-               `[DTSEG1] FD Time Segment 1 = ${reg.DBTP.fields.DTSEG1}\n` +
-               `[DTSEG2] FD Time Segment 2 = ${reg.DBTP.fields.DTSEG2}\n` +
-               `[DSJW  ] FD SJW            = ${reg.DBTP.fields.DSJW}`
-      });
+        severityLevel: sevC.Info, // info
+            msg: `DBTP: ${reg.DBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+                `[DTDCO ] FD TDC Offset     = ${reg.DBTP.fields.DTDCO}\n` +
+                `[DTSEG1] FD Time Segment 1 = ${reg.DBTP.fields.DTSEG1}\n` +
+                `[DTSEG2] FD Time Segment 2 = ${reg.DBTP.fields.DTSEG2}\n` +
+                `[DSJW  ] FD SJW            = ${reg.DBTP.fields.DSJW}`
+        });
 
       // 4. Calculate FD data phase results and store in general structure
       reg.general.bt_fddata.res.tq_len = reg.general.clk_period * reg.general.bt_fddata.set.brp;
@@ -331,14 +333,14 @@ function procRegsPrtBitTiming(reg) {
       
       // Calculate SSP (Secondary Sample Point) if TDC is enabled
       if (reg.general.bt_global.set.tdc === true) {
-        reg.general.bt_fddata.res.ssp = 100 - 100*reg.general.bt_fddata.set.ssp_offset/reg.general.bt_fddata.res.tq_per_bit;
+        reg.general.bt_fddata.res.ssp = 100*reg.general.bt_fddata.set.ssp_offset/reg.general.bt_fddata.res.tq_per_bit;
       } else {
         reg.general.bt_fddata.res.ssp = 0; // SSP not used when TDC disabled
       }
 
       // 5. Generate Report about settings
-      reg.DBTP.report.push({
-          severityLevel: 4, // infoCalculated
+    reg.DBTP.report.push({
+      severityLevel: sevC.InfoCalc, // infoCalculated
           msg: `CAN FD Data Phase Bitrate\n` +
                `Bitrate    = ${reg.general.bt_fddata.res.bitrate} Mbit/s\n` +
                `Bit Length = ${reg.general.bt_fddata.res.bit_length} ns\n` +
@@ -350,7 +352,7 @@ function procRegsPrtBitTiming(reg) {
       // Check: CAN Clock Frequency as recommended in CiA 601-3?
       if ((reg.general.clk_freq != 160) && (reg.general.clk_freq != 80) && (reg.general.clk_freq != 40) && (reg.general.clk_freq != 20)) {
         reg.DBTP.report.push({
-          severityLevel: 2, // warning
+          severityLevel: sevC.Warn, // warning
           msg: `CAN FD: Recommended CAN Clock Frequency is 20, 40, 80 MHz etc. (see CiA 601-3). Current value is ${reg.general.clk_freq} MHz.`
         });
       }
@@ -358,7 +360,7 @@ function procRegsPrtBitTiming(reg) {
       // Check: check for SJW <= min(PhaseSeg1, PhaseSeg2)?
       if (reg.general.bt_fddata.set.sjw > reg.general.bt_fddata.set.phaseseg2) {
         reg.DBTP.report.push({
-          severityLevel: 3, // error
+          severityLevel: sevC.Error, // error
           msg: `DBTP: SJW (${reg.general.bt_fddata.set.sjw}) > PhaseSeg2 (${reg.general.bt_fddata.set.phaseseg2}). ISO 11898-1 requires SJW <= PhaseSeg2.`
         });
       }
@@ -366,7 +368,7 @@ function procRegsPrtBitTiming(reg) {
       // Check: check for PhaseSeg2 >= 2
       if (reg.general.bt_fddata.set.phaseseg2 < 2) {
         reg.DBTP.report.push({
-          severityLevel: 3, // error
+          severityLevel: sevC.Error, // error
           msg: `DBTP: PhaseSeg2 (${reg.general.bt_fddata.set.phaseseg2}) < 2. ISO 11898-1 requires a value >= 2.`
         });
       }
@@ -374,7 +376,7 @@ function procRegsPrtBitTiming(reg) {
       // Check: SJW choosen as large as possible?
       if (reg.general.bt_fddata.set.sjw < reg.general.bt_fddata.set.phaseseg2) {
         reg.DBTP.report.push({
-          severityLevel: 2, // warning
+          severityLevel: sevC.Warn, // warning
           msg: `DBTP: SJW (${reg.general.bt_fddata.set.sjw}) < PhaseSeg2 (${reg.general.bt_fddata.set.phaseseg2}). It is recommended to use SJW=PhaseSeg2.`
         });
       }
@@ -382,7 +384,7 @@ function procRegsPrtBitTiming(reg) {
       // Check: Number of TQ large enough?
       if (reg.general.bt_fddata.res.tq_per_bit < 8) {
         reg.DBTP.report.push({
-          severityLevel: 2, // warning
+          severityLevel: sevC.Warn, // warning
           msg: `DBTP: Number of TQ/Bit is small. If possible, increase the TQ/Bit by reducing BRP or increasing the CAN Clock Freq.`
         });
       }
@@ -416,15 +418,15 @@ function procRegsPrtBitTiming(reg) {
     if (reg.general.bt_global.set.xl !== undefined && reg.general.bt_global.set.xl === false) {
       // 3. Generate human-readable register report
       reg.XBTP.report.push({
-        severityLevel: 2, // warning
+        severityLevel: sevC.Warn, // warning
         msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
              `XL Operation is disabled (MODE.XLOE=0) OR MODE register not present`
       });
 
     } else { // XL enabled (or MODE register not present)
       // 3. Generate human-readable register report
-      reg.XBTP.report.push({
-          severityLevel: 0, // info
+    reg.XBTP.report.push({
+      severityLevel: sevC.Info, // info
           msg: `XBTP: ${reg.XBTP.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
                `[XTDCO ] XL TDC Offset     = ${reg.XBTP.fields.XTDCO}\n` +
                `[XTSEG1] XL Time Segment 1 = ${reg.XBTP.fields.XTSEG1}\n` +
@@ -447,8 +449,8 @@ function procRegsPrtBitTiming(reg) {
       }
 
       // 5. Generate Report about settings
-      reg.XBTP.report.push({
-          severityLevel: 4, // infoCalculated
+    reg.XBTP.report.push({
+      severityLevel: sevC.InfoCalc, // infoCalculated
           msg: `XL Data Phase Bitrate\n` +
                `Bitrate    = ${reg.general.bt_xldata.res.bitrate} Mbit/s\n` +
                `Bit Length = ${reg.general.bt_xldata.res.bit_length} ns\n` +
@@ -460,7 +462,7 @@ function procRegsPrtBitTiming(reg) {
       // Check: CAN Clock Frequency as recommended in CiA 612-1?
       if ((reg.general.clk_freq != 160) && (reg.general.clk_freq != 80)) {
         reg.XBTP.report.push({
-          severityLevel: 2, // warning
+          severityLevel: sevC.Warn, // warning
           msg: `CAN XL: Recommended CAN Clock Frequency is 80 MHz or 160 MHz. Current value is ${reg.general.clk_freq} MHz.`
         });
       }
@@ -468,7 +470,7 @@ function procRegsPrtBitTiming(reg) {
       // Check: check for SJW <= min(PhaseSeg1, PhaseSeg2)?
       if (reg.general.bt_xldata.set.sjw > reg.general.bt_xldata.set.phaseseg2) {
         reg.XBTP.report.push({
-          severityLevel: 3, // error
+          severityLevel: sevC.Error, // error
           msg: `XBTP: SJW (${reg.general.bt_xldata.set.sjw}) > PhaseSeg2 (${reg.general.bt_xldata.set.phaseseg2}). ISO 11898-1 requires SJW <= PhaseSeg2.`
         });
       }
@@ -476,7 +478,7 @@ function procRegsPrtBitTiming(reg) {
       // Check: check for PhaseSeg2 >= 2
       if (reg.general.bt_xldata.set.phaseseg2 < 2) {
         reg.XBTP.report.push({
-          severityLevel: 3, // error
+          severityLevel: sevC.Error, // error
           msg: `XBTP: PhaseSeg2 (${reg.general.bt_xldata.set.phaseseg2}) < 2. ISO 11898-1 requires a value >= 2.`
         });
       }
@@ -484,7 +486,7 @@ function procRegsPrtBitTiming(reg) {
       // Check: SJW choosen as large as possible?
       if (reg.general.bt_xldata.set.sjw < reg.general.bt_xldata.set.phaseseg2) {
         reg.XBTP.report.push({
-          severityLevel: 2, // warning
+          severityLevel: sevC.Warn, // warning
           msg: `XBTP: SJW (${reg.general.bt_xldata.set.sjw}) < PhaseSeg2 (${reg.general.bt_xldata.set.phaseseg2}). It is recommended to use SJW=PhaseSeg2.`
         });
       }
@@ -492,7 +494,7 @@ function procRegsPrtBitTiming(reg) {
       // Check: Number of TQ large enough?
       if (reg.general.bt_fddata.res.tq_per_bit < 8) {
         reg.DBTP.report.push({
-          severityLevel: 2, // warning
+          severityLevel: sevC.Warn, // warning
           msg: `XBTP: Number of TQ/Bit is small. If possible, increase the TQ/Bit by reducing BRP or increasing the CAN Clock Freq.`
         });
       }
@@ -501,7 +503,7 @@ function procRegsPrtBitTiming(reg) {
       if (!reg.MODE || !reg.MODE.fields || reg.MODE.fields.EFDI == 0) { // Error Signaling is enabled
         if (reg.general.bt_arb.res.tq_per_bit < (2 * reg.general.bt_xldata.res.tq_per_bit)) {
           reg.XBTP.report.push({
-            severityLevel: 3, // error
+            severityLevel: sevC.Error, // error
             msg: `Minimum Ratio of [XL Data Bitrate / Nominal Bitrate] = ${reg.general.bt_arb.res.tq_per_bit / reg.general.bt_xldata.res.tq_per_bit}. Minimum ratio is 2, when Error Signaling is enabled (MODE.ESDI=0).`
           });
         }
@@ -531,7 +533,7 @@ function procRegsPrtBitTiming(reg) {
     if (!reg.MODE || !reg.MODE.fields || (reg.MODE.fields.XLOE !== undefined && reg.MODE.fields.XLOE == 0) || (reg.MODE.fields.XLTR !== undefined && reg.MODE.fields.XLTR == 0) || !reg.XBTP) {
       // 3. Generate human-readable register report
       reg.PCFG.report.push({
-        severityLevel: 0, // info
+        severityLevel: sevC.Info, // info
         msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
              `XL Operation (MODE.XLOE=0) OR Transceiver Mode Switch (MODE.XLTR=0) is disabled OR MODE register not present`
       });
@@ -539,7 +541,7 @@ function procRegsPrtBitTiming(reg) {
     } else { // MODE.XLTR == 1 && MODE.XLOE == 1
       // 3. Generate human-readable register report
       reg.PCFG.report.push({
-          severityLevel: 0, // info
+        severityLevel: sevC.Info, // info
           msg: `PCFG: ${reg.PCFG.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
                `[PWMO] PWM Offset      = ${reg.PCFG.fields.PWMO}\n` +
                `[PWML] PWM Phase Long  = ${reg.PCFG.fields.PWML}\n` +
@@ -553,14 +555,14 @@ function procRegsPrtBitTiming(reg) {
       
       // 5. Generate Report about settings
       reg.PCFG.report.push({
-          severityLevel: 4, // infoCalculated
+        severityLevel: sevC.InfoCalc, // infoCalculated
           msg: `PWM Configuration\nPWM Symbol Length = ${reg.general.bt_xldata.res.pwm_symbol_len_ns} ns = ${reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles} clock cycles\nPWM Symbols per XL Data Bit Time = ${reg.general.bt_xldata.res.pwm_symbols_per_bit_time.toFixed(2)}`
       });
 
       // Ratio of XL Data Bit Time to PWM Symbol Length
       if (!Number.isInteger(reg.general.bt_xldata.res.pwm_symbols_per_bit_time)) {
         reg.PCFG.report.push({
-          severityLevel: 3, // error
+          severityLevel: sevC.Error, // error
           msg: `Length of XL Data Bit Time is not an integer multiple of PWM Symbol Length. tBit/tPWM=${reg.general.bt_xldata.res.pwm_symbols_per_bit_time.toFixed(2)}`
         });
       }
@@ -569,7 +571,7 @@ function procRegsPrtBitTiming(reg) {
       const pwmo_calculated = (reg.general.bt_arb.res.tq_per_bit * reg.general.bt_arb.set.brp) % reg.general.bt_xldata.res.pwm_symbol_len_clk_cycles;
       if (pwmo_calculated !== reg.general.bt_xldata.set.pwm_offset) {
         reg.PCFG.report.push({
-          severityLevel: 3, // error
+          severityLevel: sevC.Error, // error
           msg: `PWM Offset (PCFG.PWMO = ${reg.general.bt_xldata.set.pwm_offset}) is wrong. Correct value is PCFG.PWMO = ${pwmo_calculated}`
         });
       }
@@ -596,13 +598,13 @@ function procRegsPrtOther(reg) {
     // 2. Generate human-readable register report
     if (regValue === 0x87654321) {
       reg.ENDN.report.push({
-        severityLevel: 0, // info
+        severityLevel: sevC.Info, // info
         msg: `ENDN: ${reg.ENDN.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
              `[ETV] Endianness Test Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')} (Correct)`
       });
     } else {
       reg.ENDN.report.push({
-        severityLevel: 3, // error
+        severityLevel: sevC.Error, // error
         msg: `ENDN: ${reg.ENDN.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
              `[ETV] Endianness Test Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')} (Expected: 0x87654321)`
       });
@@ -627,7 +629,7 @@ function procRegsPrtOther(reg) {
 
     // 2. Generate human-readable register report
     reg.PREL.report.push({
-      severityLevel: 0, // info
+      severityLevel: sevC.Info, // info
       msg: `PREL: ${reg.PREL.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
            `[REL    ] Release  = ${reg.PREL.fields.REL}\n` +
            `[STEP   ] Step     = ${reg.PREL.fields.STEP}\n` +
@@ -639,7 +641,7 @@ function procRegsPrtOther(reg) {
 
     // Generate Version Report
     reg.PREL.report.push({
-      severityLevel: 4, // 
+      severityLevel: sevC.InfoCalc, // 
       msg: `PREL: X_CAN V${reg.PREL.fields.REL.toString(16).toUpperCase()}.${reg.PREL.fields.STEP.toString(16).toUpperCase()}.${reg.PREL.fields.SUBSTEP.toString(16).toUpperCase()}, Date ${reg.PREL.fields.DAY.toString(16).toUpperCase().padStart(2, '0')}.${reg.PREL.fields.MON.toString(16).toUpperCase().padStart(2, '0')}.${reg.PREL.fields.YEAR.toString(16).toUpperCase().padStart(2, '0')}`
     });
   }
@@ -667,7 +669,7 @@ function procRegsPrtOther(reg) {
 
     // 2. Generate human-readable register report
     reg.STAT.report.push({
-      severityLevel: 0, // info
+      severityLevel: sevC.Info, // info
       msg: `STAT: ${reg.STAT.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
            `[ACT ] Activity                     = ${reg.STAT.fields.ACT} (0: inactive, 1: idle, 2: receiver, 3: transmitter))\n` +
            `[INT ] Integrating                  = ${reg.STAT.fields.INT}\n` +
@@ -685,25 +687,25 @@ function procRegsPrtOther(reg) {
     // 3. Add status-specific warnings/errors
     if (reg.STAT.fields.BO === 1) {
       reg.STAT.report.push({
-        severityLevel: 2, // warning
+        severityLevel: sevC.Warn, // warning
         msg: `CAN controller is in Bus Off state`
       });
     }
     if (reg.STAT.fields.EP === 1) {
       reg.STAT.report.push({
-        severityLevel: 2, // warning
+        severityLevel: sevC.Warn, // warning
         msg: `CAN controller is in Error Passive state`
       });
     }
     if (reg.STAT.fields.TEC > 0) {
       reg.STAT.report.push({
-        severityLevel: 2, // warning
+        severityLevel: sevC.Warn, // warning
         msg: `Transmit Error Counter > 0. Errors seen recently on CAN bus.`
       });
     }
     if (reg.STAT.fields.REC > 96) {
       reg.STAT.report.push({
-        severityLevel: 2, // warning
+        severityLevel: sevC.Warn, // warning
         msg: `Receive Error Counter > 0. Errors seen recently on CAN bus.`
       });
     }
@@ -735,8 +737,8 @@ function procRegsPrtOther(reg) {
     reg.EVNT.fields.ARA = getBits(regValue, 8, 8); // Access to Reserved Address
 
     // 2. Generate human-readable register report
-    reg.EVNT.report.push({
-      severityLevel: 0, // info
+      reg.EVNT.report.push({
+        severityLevel: sevC.Info, // info
       msg: `EVNT: ${reg.EVNT.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
            `[RXFI] RX FIFO Interrupt          = ${reg.EVNT.fields.RXFI}\n` +
            `[TXFI] TX FIFO Interrupt          = ${reg.EVNT.fields.TXFI}\n` +
@@ -758,25 +760,25 @@ function procRegsPrtOther(reg) {
     // 3. Add event-specific warnings/errors
     if (reg.EVNT.fields.BO === 1) {
       reg.EVNT.report.push({
-        severityLevel: 3, // error
+        severityLevel: sevC.Error, // error
         msg: `Bus Off condition detected - CAN controller is offline`
       });
     }
     if (reg.EVNT.fields.EP === 1) {
       reg.EVNT.report.push({
-        severityLevel: 2, // warning
+        severityLevel: sevC.Warn, // warning
         msg: `Error Passive state - high error rate detected`
       });
     }
     if (reg.EVNT.fields.EW === 1) {
       reg.EVNT.report.push({
-        severityLevel: 1, // recommendation
+        severityLevel: sevC.Recom, // recommendation
         msg: `Error Warning state - monitor error counters`
       });
     }
     if (reg.EVNT.fields.MRAF === 1) {
       reg.EVNT.report.push({
-        severityLevel: 3, // error
+        severityLevel: sevC.Error, // error
         msg: `Message RAM Access Failure detected`
       });
     }
@@ -794,8 +796,8 @@ function procRegsPrtOther(reg) {
     reg.LOCK.fields.UNLOCK = regValue; // Unlock Value
 
     // 2. Generate human-readable register report
-    reg.LOCK.report.push({
-      severityLevel: 0, // info
+      reg.LOCK.report.push({
+        severityLevel: sevC.Info, // info
       msg: `LOCK: ${reg.LOCK.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
            `[UNLOCK] Unlock Value = 0x${regValue.toString(16).toUpperCase().padStart(8, '0')}`
     });
@@ -828,8 +830,8 @@ function procRegsPrtOther(reg) {
     reg.CTRL.fields.INIT = getBits(regValue, 0, 0); // Initialization
 
     // 2. Generate human-readable register report
-    reg.CTRL.report.push({
-      severityLevel: 0, // info
+      reg.CTRL.report.push({
+        severityLevel: sevC.Info, // info
       msg: `CTRL: ${reg.CTRL.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
            `[NISO] Non-ISO Operation              = ${reg.CTRL.fields.NISO}\n` +
            `[TXP ] Transmit Pause                 = ${reg.CTRL.fields.TXP}\n` +
@@ -852,13 +854,13 @@ function procRegsPrtOther(reg) {
     // 3. Add control-specific information
     if (reg.CTRL.fields.INIT === 1) {
       reg.CTRL.report.push({
-        severityLevel: 1, // recommendation
+        severityLevel: sevC.Recom, // recommendation
         msg: `Controller is in Initialization mode - switch to Normal mode for operation`
       });
     }
     if (reg.CTRL.fields.MON === 1) {
       reg.CTRL.report.push({
-        severityLevel: 0, // info
+        severityLevel: sevC.Info, // info
         msg: `Bus Monitoring Mode is active - controller will not transmit`
       });
     }
@@ -880,8 +882,8 @@ function procRegsPrtOther(reg) {
     reg.FIMC.fields.FIMV = getBits(regValue, 15, 0);  // Fault Injection Module Value
 
     // 2. Generate human-readable register report
-    reg.FIMC.report.push({
-      severityLevel: 0, // info
+      reg.FIMC.report.push({
+        severityLevel: sevC.Info, // info
       msg: `FIMC: ${reg.FIMC.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
            `[FIME] Fault Injection Enable        = ${reg.FIMC.fields.FIME}\n` +
            `[FIMS] Fault Injection Module Select = ${reg.FIMC.fields.FIMS}\n` +
@@ -893,7 +895,7 @@ function procRegsPrtOther(reg) {
     // 3. Add fault injection warnings
     if (reg.FIMC.fields.FIME === 1) {
       reg.FIMC.report.push({
-        severityLevel: 2, // warning
+        severityLevel: sevC.Warn, // warning
         msg: `Fault Injection Module is enabled - this should only be used for testing`
       });
     }
@@ -919,8 +921,8 @@ function procRegsPrtOther(reg) {
     reg.TEST.fields.BASIC = getBits(regValue, 2, 2); // Basic Mode
 
     // 2. Generate human-readable register report
-    reg.TEST.report.push({
-      severityLevel: 0, // info
+      reg.TEST.report.push({
+        severityLevel: sevC.Info, // info
       msg: `TEST: ${reg.TEST.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
            `[SVAL ] Start Value              = ${reg.TEST.fields.SVAL}\n` +
            `[TXBNS] TX Buffer Number Select  = ${reg.TEST.fields.TXBNS}\n` +
@@ -936,13 +938,13 @@ function procRegsPrtOther(reg) {
     // 3. Add test mode information
     if (reg.TEST.fields.LBCK === 1) {
       reg.TEST.report.push({
-        severityLevel: 1, // recommendation
+        severityLevel: sevC.Recom, // recommendation
         msg: `Loop Back Mode is active - for testing only`
       });
     }
     if (reg.TEST.fields.SILENT === 1) {
       reg.TEST.report.push({
-        severityLevel: 1, // recommendation
+        severityLevel: sevC.Recom, // recommendation
         msg: `Silent Mode is active - controller will not transmit dominant bits`
       });
     }

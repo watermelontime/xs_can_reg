@@ -13,6 +13,7 @@
 import * as draw_svg from './draw_bits_svg.js';
 import * as m_can from './m_can.js';
 import * as x_can_prt from './x_can_prt.js';
+import { sevC } from './func_get_bits.js';
 
 // global variable definitions
 let par_clk_freq_g = 160; // Global variable for CAN clock frequency in MHz
@@ -148,7 +149,7 @@ function parseUserRegisterValues(userRegText, reg) {
       if (trimmedLine.startsWith('#')) {
         // Ignore comment lines - add info report for visibility
         reg.parse_output.report.push({
-          severityLevel: 0, // info
+          severityLevel: sevC.Info, // info
           msg: `Ignored comment line: "${trimmedLine}"`
         });
         continue; // Skip to next line
@@ -171,19 +172,19 @@ function parseUserRegisterValues(userRegText, reg) {
           });
           
           reg.parse_output.report.push({
-            severityLevel: 0, // info
+            severityLevel: sevC.Info, // info
             msg: `Parsed register at address 0x${addrHex.toUpperCase()}: 0x${valueHex.toUpperCase()}`
           });
         } else {
           reg.parse_output.report.push({
-            severityLevel: 3, // error
+            severityLevel: sevC.Error, // error
             msg: `Invalid hex values in line: "${trimmedLine}"`
           });
           reg.parse_output.hasErrors = true;
         }
       } else {
         reg.parse_output.report.push({
-          severityLevel: 3, // Error
+          severityLevel: sevC.Error, // Error
           msg: `Invalid line format: "${trimmedLine}". Expected format: "0x000 0x87654321"`
         });
         reg.parse_output.hasErrors = true;
@@ -195,7 +196,7 @@ function parseUserRegisterValues(userRegText, reg) {
   const registerCount = reg.raw.length;
   if (registerCount > 0) {
     reg.parse_output.report.push({
-      severityLevel: 0, // info
+      severityLevel: sevC.Info, // info
       msg: `Raw registers parsed successfully: ${registerCount}`
     });
   }
@@ -240,11 +241,11 @@ function displayValidationReport(reg) {
   // Helper function to get severity level text
   function getSeverityText(level) {
     switch (level) {
-      case 0: return 'I';
-      case 1: return 'R';
-      case 2: return 'W';
-      case 3: return 'E';
-      case 4: return 'C';
+      case sevC.Info: return 'I';
+      case sevC.Recom: return 'R';
+      case sevC.Warn: return 'W';
+      case sevC.Error: return 'E';
+      case sevC.InfoCalc: return 'C';
       default: return 'UNKNOWN';
     }
   }
@@ -252,23 +253,23 @@ function displayValidationReport(reg) {
   // Helper function to get severity symbol
   function getSeveritySymbol(level) {
     switch (level) {
-      case 0: return 'ℹ️';
-      case 1: return '💡';
-      case 2: return '⚠️';
-      case 3: return '❌';
-      case 4: return '🧮';
+      case sevC.Info: return 'ℹ️';
+      case sevC.Recom: return '💡';
+      case sevC.Warn: return '⚠️';
+      case sevC.Error: return '❌';
+      case sevC.InfoCalc: return '🧮';
       default: return '❓';
     }
   }
-  
+
   // Helper function to get CSS class for severity level
   function getSeverityClass(level) {
     switch (level) {
-      case 0: return 'report-info';
-      case 1: return 'report-recommendation';
-      case 2: return 'report-warning';
-      case 3: return 'report-error';
-      case 4: return 'report-infoCalculated';
+      case sevC.Info: return 'report-info';
+      case sevC.Recom: return 'report-recommendation';
+      case sevC.Warn: return 'report-warning';
+      case sevC.Error: return 'report-error';
+      case sevC.InfoCalc: return 'report-infoCalculated';
       default: return 'report-info';
     }
   }
@@ -277,11 +278,11 @@ function displayValidationReport(reg) {
   const counts = { errors: 0, warnings: 0, recommendations: 0, info: 0, calculated: 0 };
   allValidationReports.forEach(report => {
     switch (report.severityLevel) {
-      case 3: counts.errors++; break;
-      case 2: counts.warnings++; break;
-      case 1: counts.recommendations++; break;
-      case 0: counts.info++; break;
-      case 4: counts.calculated++; break;
+      case sevC.Info: counts.info++; break;
+      case sevC.Recom: counts.recommendations++; break;
+      case sevC.Error: counts.errors++; break;
+      case sevC.Warn: counts.warnings++; break;
+      case sevC.InfoCalc: counts.calculated++; break;
     }
   });
   
@@ -699,8 +700,6 @@ function loadRegisterValuesExample() {
     return;
   }
 
-  console.log(`[Info] Loading register values example for: ${canIpModule}`);
-
   // Get the register textarea element
   const registerTextArea = document.getElementById('userInputRegisterValues');
   if (!registerTextArea) {
@@ -739,9 +738,6 @@ function loadRegisterValuesExample() {
   // Assign the example register values to the textarea
   registerTextArea.value = exampleRegisterValues;
   console.log(`[Info] Loaded example register values for ${canIpModule}`);
-
-  // Process the loaded register values
-  processUserRegisterValues();
 }
 
 // ===================================================================================
@@ -795,14 +791,14 @@ function processUserRegisterValues() {
   if (!canIpModule) {
     // If select field is not found, log an error and exit
     reg.general.report.push({
-      severityLevel: 3, // error
+      severityLevel: sevC.Error, // error
       msg: `[Error] CAN IP Module select field not found in HTML.`
     });
     displayValidationReport(reg);
     return;
   }
   reg.general.report.push({
-    severityLevel: 4, // infoCalculated
+    severityLevel: sevC.InfoCalc, // infoCalculated
     msg: `CAN IP Module "${canIpModule}" assumed for register processing`
   });
 
@@ -811,7 +807,7 @@ function processUserRegisterValues() {
   reg.general.clk_period = 1000/par_clk_freq_g; // 1000 / MHz = ns
   // generate report for CAN Clock
   reg.general.report.push({
-      severityLevel: 4, // infoCalculated
+      severityLevel: sevC.InfoCalc, // infoCalculated
       msg: `CAN Clock\nFrequency = ${par_clk_freq_g} MHz\nPeriod    = ${reg.general.clk_period} ns`
   });
 
@@ -836,7 +832,7 @@ function processUserRegisterValues() {
       break;
     default:
       reg.general.report.push({
-        severityLevel: 3, // error
+        severityLevel: sevC.Error, // error
         msg: `Decoding of "${canIpModule}" is not yet implemented.`
       });
       break;
