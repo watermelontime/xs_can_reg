@@ -309,7 +309,8 @@ function displayValidationReport(reg) {
     const severityText = getSeverityText(report.severityLevel);
     const severitySymbol = getSeveritySymbol(report.severityLevel);
     const severityClass = getSeverityClass(report.severityLevel);
-    
+    const highlightClass = (report.highlight !== undefined && report.highlight === true) ? ' report-highlight' : '';
+
     // Add 10 spaces after line breaks for proper alignment and escape HTML
     const formattedMsg = report.msg
       .replace(/&/g, '&amp;')
@@ -318,7 +319,7 @@ function displayValidationReport(reg) {
       .replace(/\n/g, '\n      '); // indentation of lines 2 to N
     
     //reportText += `<span class="${severityClass}">${severitySymbol} [${severityText}] ${formattedMsg}</span>\n`;
-    reportText += `<span class="${severityClass}">${severitySymbol} ${formattedMsg}</span>\n`;
+    reportText += `<span class="${severityClass}${highlightClass}">${severitySymbol} ${formattedMsg}</span>\n`;
   });
   
   // Add footer
@@ -707,44 +708,63 @@ function loadRegisterValuesExample() {
     return;
   }
 
+  // initialize result object
+  let exampleObj = { exampleRegisterValues: '', clockFrequency: null };
+
   // Call the appropriate module function to load example register values
-  let exampleRegisterValues = '';
-  
   switch (canIpModule) {
     case 'M_CAN':
       if (m_can.loadExampleRegisterValues) {
-        exampleRegisterValues = m_can.loadExampleRegisterValues();
+        exampleObj = m_can.loadExampleRegisterValues();
       } else {
-        console.warn('[Warning] loadExampleRegisterValues not implemented in m_can module');
-        exampleRegisterValues = loadDefaultExample();
+        console.warn(`[Warning] loadExampleRegisterValues not implemented in module: ${canIpModule}`);
+        exampleObj = loadDefaultExample();
       }
       break;
-      
+    
     case 'X_CAN_PRT':
       if (x_can_prt.loadExampleRegisterValues) {
-        exampleRegisterValues = x_can_prt.loadExampleRegisterValues();
+        exampleObj = x_can_prt.loadExampleRegisterValues();
       } else {
-        console.warn('[Warning] loadExampleRegisterValues not implemented in x_can_prt module');
-        exampleRegisterValues = loadDefaultExample();
+        console.warn(`[Warning] loadExampleRegisterValues not implemented in module: ${canIpModule}`);
+        exampleObj = loadDefaultExample();
       }
       break;
 
     default:
       console.warn(`[Warning] Example register values for ${canIpModule} not yet implemented`);
-      exampleRegisterValues = loadDefaultExample();
+      exampleObj = loadDefaultExample();
       break; 
   }
 
-  // Assign the example register values to the textarea
-  registerTextArea.value = exampleRegisterValues;
-  console.log(`[Info] Loaded example register values for ${canIpModule}`);
-}
+  // check the loaded Object for validity
+  if (typeof exampleObj === 'object' && exampleObj.exampleRegisterValues && exampleObj.clockFrequency) {
+    // all OK
+    // Assign the example register values to the textarea
+    registerTextArea.value = exampleObj.exampleRegisterValues;
+    console.log(`[Info] Loaded example register values for ${canIpModule}`);
+
+    // assign value to global clock frequency variable
+    par_clk_freq_g = exampleObj.clockFrequency;
+
+    // update the clock frequency parameter in HTML
+    const clkFreqField = document.getElementById('par_clk_freq');
+    if (clkFreqField) {
+      clkFreqField.value = exampleObj.clockFrequency;
+    }
+
+  } else {
+    // NOT OK
+    console.warn(`[Warning] loadExampleRegisterValues for <${canIpModule}> did not return a valid object!`);
+  }
+} // loadRegisterValuesExample()
 
 // ===================================================================================
 // Load default example register values (fallback)
 function loadDefaultExample() {
-  const defaultRegisterValues = `# Default example register values
-# No example exists for this CAN IP Module
+  const clock = 80;
+  const registerString = `# IMPORTANT: No example exists!
+# Default example register values
 # Format to use: 0xADDR 0xVALUE
 # 0xADDR is the relative register address
 0x000 0x87654321
@@ -753,7 +773,7 @@ function loadDefaultExample() {
 0x020 0x00000100`;
   
   console.log('[Info] Generated default example register values');
-  return defaultRegisterValues;
+  return {exampleRegisterValues: registerString, clockFrequency: clock};
 }
 
 // ===================================================================================
@@ -798,7 +818,8 @@ function processUserRegisterValues() {
     return;
   }
   reg.general.report.push({
-    severityLevel: sevC.InfoCalc, // infoCalculated
+    severityLevel: sevC.Info,
+    highlight: true,
     msg: `CAN IP Module "${canIpModule}" assumed for register processing`
   });
 
@@ -807,7 +828,8 @@ function processUserRegisterValues() {
   reg.general.clk_period = 1000/par_clk_freq_g; // 1000 / MHz = ns
   // generate report for CAN Clock
   reg.general.report.push({
-      severityLevel: sevC.InfoCalc, // infoCalculated
+      severityLevel: sevC.Info,
+      highlight: true,
       msg: `CAN Clock\nFrequency = ${par_clk_freq_g} MHz\nPeriod    = ${reg.general.clk_period} ns`
   });
 

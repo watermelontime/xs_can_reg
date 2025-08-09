@@ -358,7 +358,8 @@ svg {
     color: #000000;
 }
 
-.report-infoCalculated {
+.report-infoCalculated,
+.report-highlight {
     color: #0077ff;
     font-weight: bold;
 }

@@ -24,7 +24,8 @@ export function processRegsOfX_CAN_PRT(reg) {
 // ==================================================================================
 // Example Register Values for X_CAN PRT
 export function loadExampleRegisterValues() {
-  return `# X_CAN PRT example register values
+  const clock = 160;
+  const registerString = `# X_CAN PRT example register values
 # Format to use: 0xADDR 0xVALUE
 # 0xADDR is relative X_CAN PRT address
 0x000 0x87654321
@@ -38,6 +39,8 @@ export function loadExampleRegisterValues() {
 0x068 0x100f0e0e
 0x06c 0x0a090808
 0x070 0x00000C04`;
+
+return {exampleRegisterValues: registerString, clockFrequency: clock};
 }
 
 // ===================================================================================
@@ -631,17 +634,18 @@ function procRegsPrtOther(reg) {
     reg.PREL.report.push({
       severityLevel: sevC.Info, // info
       msg: `PREL: ${reg.PREL.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-           `[REL    ] Release  = ${reg.PREL.fields.REL}\n` +
-           `[STEP   ] Step     = ${reg.PREL.fields.STEP}\n` +
-           `[SUBSTEP] Substep  = ${reg.PREL.fields.SUBSTEP}\n` +
-           `[YEAR   ] Year     = ${reg.PREL.fields.YEAR}\n` +
-           `[MON    ] Month    = ${reg.PREL.fields.MON}\n` +
-           `[DAY    ] Day      = ${reg.PREL.fields.DAY}`
+           `[REL    ] Release  = 0x${reg.PREL.fields.REL.toString(16).toUpperCase()}\n` +
+           `[STEP   ] Step     = 0x${reg.PREL.fields.STEP.toString(16).toUpperCase()}\n` +
+           `[SUBSTEP] Substep  = 0x${reg.PREL.fields.SUBSTEP.toString(16).toUpperCase()}\n` +
+           `[YEAR   ] Year     = 0x${reg.PREL.fields.YEAR.toString(16).toUpperCase()}\n` +
+           `[MON    ] Month    = 0x${reg.PREL.fields.MON.toString(16).toUpperCase().padStart(2, '0')}\n` +
+           `[DAY    ] Day      = 0x${reg.PREL.fields.DAY.toString(16).toUpperCase().padStart(2, '0')}`
     });
 
     // Generate Version Report
     reg.PREL.report.push({
-      severityLevel: sevC.InfoCalc, // 
+      severityLevel: sevC.Info,
+      highlight: true,
       msg: `PREL: X_CAN V${reg.PREL.fields.REL.toString(16).toUpperCase()}.${reg.PREL.fields.STEP.toString(16).toUpperCase()}.${reg.PREL.fields.SUBSTEP.toString(16).toUpperCase()}, Date ${reg.PREL.fields.DAY.toString(16).toUpperCase().padStart(2, '0')}.${reg.PREL.fields.MON.toString(16).toUpperCase().padStart(2, '0')}.${reg.PREL.fields.YEAR.toString(16).toUpperCase().padStart(2, '0')}`
     });
   }
