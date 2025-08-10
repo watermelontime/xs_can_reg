@@ -214,6 +214,8 @@ function procRegsPrtBitTiming(reg) {
     reg.CCCR.fields.TXP  = getBits(regValue, 14, 14);  // Transmit Pause
     reg.CCCR.fields.EFBI = getBits(regValue, 13, 13);  // Edge Filtering during Bus Integration
     reg.CCCR.fields.PXHD = getBits(regValue, 12, 12);  // Protocol Exception Handling Disable
+    reg.CCCR.fields.WMM  = getBits(regValue, 11, 11);  // Wide Message Marker
+    reg.CCCR.fields.UTSU = getBits(regValue, 10, 10);  // Use Timestamping Unit
     reg.CCCR.fields.BRSE = getBits(regValue, 9, 9);    // Bit Rate Switch Enable
     reg.CCCR.fields.FDOE = getBits(regValue, 8, 8);    // FD Operation Enable
     reg.CCCR.fields.TEST = getBits(regValue, 7, 7);    // Test Mode Enable
@@ -240,6 +242,8 @@ function procRegsPrtBitTiming(reg) {
              `[TXP ] Transmit Pause                        = ${reg.CCCR.fields.TXP}\n` +
              `[EFBI] Edge Filtering during Bus Integration = ${reg.CCCR.fields.EFBI}\n` +
              `[PXHD] Protocol Exception Handling Disable   = ${reg.CCCR.fields.PXHD}\n` +
+             `[WMM ] Wide Message Marker                   = ${reg.CCCR.fields.WMM} (0: 8 bit MM, 1: 16 bit MM)\n` +
+             `[UTSU] Use Timestamping Unit (TSU)           = ${reg.CCCR.fields.UTSU} (0: internal, 1: use TSU)\n` +
              `[BRSE] Bit Rate Switch Enable                = ${reg.CCCR.fields.BRSE}\n` +
              `[FDOE] FD Operation Enable                   = ${reg.CCCR.fields.FDOE}\n` +
              `[TEST] Test Mode Enable                      = ${reg.CCCR.fields.TEST}\n` +
@@ -255,23 +259,24 @@ function procRegsPrtBitTiming(reg) {
     // Check: FDOE and BRSE should both be set for FD operation
     if (reg.CCCR.fields.FDOE === 1 && reg.CCCR.fields.BRSE === 0) {
       reg.CCCR.report.push({
-        severityLevel: sevC.Warn, // warning
+        severityLevel: sevC.Info,
+        highlight: true,
         msg: `CCCR: FDOE is set but BRSE is not set. For full CAN FD operation, both FDOE and BRSE should be enabled.`
       });
     }
 
     // Check: Configuration should not be in initialization mode during normal operation
-    if (reg.CCCR.fields.INIT === 1) {
+    if (reg.CCCR.fields.INIT === 1 || reg.CCCR.fields.CCE === 1) {
       reg.CCCR.report.push({
-        severityLevel: sevC.Recom, // recommendation
-        msg: `CCCR: Controller is in Initialization mode (INIT=1). Switch to Normal mode for operation.`
+        severityLevel: sevC.Warn,
+        msg: `CCCR: M_CAN is not started (no RX/TX possible): (INIT=1) or (CCE=1).`
       });
     }
 
     // Check: Test mode indication
     if (reg.CCCR.fields.TEST === 1) {
       reg.CCCR.report.push({
-        severityLevel: sevC.Recom, // recommendation
+        severityLevel: sevC.Warn,
         msg: `CCCR: Test Mode is enabled (TEST=1). This should only be used for testing purposes.`
       });
     }
@@ -279,11 +284,19 @@ function procRegsPrtBitTiming(reg) {
     // Check: Bus monitoring mode indication
     if (reg.CCCR.fields.MON === 1) {
       reg.CCCR.report.push({
-        severityLevel: sevC.Info, // info
-        msg: `CCCR: Bus Monitoring Mode is active (MON=1). Controller will not transmit.`
+        severityLevel: sevC.Warn,
+        msg: `CCCR: Bus Monitoring Mode is active (MON=1). Controller will not transmit on TX pin at all, also no ACK or Error Frames.`
       });
     }
-  }
+
+    // Check: Restricted operation mode
+    if (reg.CCCR.fields.ASM === 1) {
+      reg.CCCR.report.push({
+        severityLevel: sevC.Warn,
+        msg: `CCCR: Restricted Operation Mode is active (ASM=1). Controller will not transmit frames, but it will transmit an ACK on successful reception.`
+      });
+    }
+  } // CCCR
 
   // === NBTP: Extract parameters from register ==========================
   if ('NBTP' in reg && reg.NBTP.int32 !== undefined) {
@@ -637,6 +650,212 @@ function procRegsPrtOther(reg) {
     });
   } // CUST
 
+  // === TEST: Hardware Test Functions Register ========================
+  if ('TEST' in reg && reg.TEST.int32 !== undefined) {
+    const regValue = reg.TEST.int32;
+
+    // 0. Extend existing register structure
+    reg.TEST.fields = {};
+    reg.TEST.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of TEST register
+    reg.TEST.fields.SVAL  = getBits(regValue, 21, 21); // Started Valid
+    reg.TEST.fields.TXBNS = getBits(regValue, 20, 16); // TX Buffer Number Started
+    reg.TEST.fields.PVAL  = getBits(regValue, 13, 13); // Prepend Valid
+    reg.TEST.fields.TXBNP = getBits(regValue, 12,  8); // TX Buffer Number Prepend
+    reg.TEST.fields.RX    = getBits(regValue, 7, 7); // Receive Pin
+    reg.TEST.fields.TX    = getBits(regValue, 6, 5); // TX Pin Control
+    reg.TEST.fields.LBCK  = getBits(regValue, 4, 4); // Loop Back Mode
+
+    // 2. Generate human-readable register report
+    reg.TEST.report.push({
+      severityLevel: sevC.Info, // info
+      msg: `TEST: ${reg.TEST.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[SVAL ] Started Valid             = ${reg.TEST.fields.SVAL}\n` +
+           `[TXBNS] TX Buffer Number Started  = ${reg.TEST.fields.TXBNS}\n` +
+           `[PVAL ] Prepend Valid             = ${reg.TEST.fields.PVAL}\n` +
+           `[TXBNP] TX Buffer Number Prepared = ${reg.TEST.fields.TXBNP}\n` +
+           `[RX   ] RX Pin                    = ${reg.TEST.fields.RX}\n` +
+           `[TX   ] TX Pin Control            = ${reg.TEST.fields.TX} (0: PRT controlled, 1: SP monitor, 2: Dominant, 3: Recessive)\n` +
+           `[LBCK ] Loop Back Mode            = ${reg.TEST.fields.LBCK} (1: enabled)`
+    });
+
+    // 3. Report test mode information messages
+    if (reg.TEST.fields.LBCK === 1) {
+      reg.TEST.report.push({
+        severityLevel: sevC.Warn,
+        msg: `Loop Back Mode is active - for testing only\n` +
+             `When CCCR.MON=1 it is the internal loopback (TX pin shows always recessive)\n` +
+             `When CCCR.MON=0 it is the external loopback (TX pin driven by M_CAN PRT)`
+      });
+    }
+    
+    if (reg.TEST.fields.TX !== 0) {
+      reg.TEST.report.push({
+        severityLevel: sevC.Warn,
+        msg: `Test Mode is active: TX Pin is under manual control! CAN messages cannot be transmitted.`
+      });
+    }
+  }
+
+
+  // === RWD: RAM Watchdog ================================================
+  if ('RWD' in reg && reg.RWD.int32 !== undefined) {
+    const regValue = reg.RWD.int32;
+
+    // 0. Extend existing register structure
+    reg.RWD.fields = {};
+    reg.RWD.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of RWD register (M_CAN User Manual v3.3.1, page 10)
+    reg.RWD.fields.WDV = getBits(regValue, 15, 8);  // Watchdog Value (8 bits)
+    reg.RWD.fields.WDC = getBits(regValue, 7, 0);   // Watchdog Configuration (8 bits)
+
+    // 2. Generate human-readable register report
+    reg.RWD.report.push({
+      severityLevel: sevC.Info, // info
+      msg: `RWD: ${reg.RWD.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[WDV] Watchdog Value         = ${reg.RWD.fields.WDV} (current Watchdog counter value)\n` +
+           `[WDC] Watchdog Configuration = ${reg.RWD.fields.WDC} (0: disabled, else: start value of Watchdog down-counter)`
+    });
+
+    // 3. Add warnings or info if Watchdog Value is close to Configuration
+    if (reg.RWD.fields.WDC > 0) {
+      reg.RWD.report.push({
+        severityLevel: sevC.Info,
+        highlight: true,
+        msg: `RAM Watchdog is enabled. Configuration: WDC = ${reg.RWD.fields.WDC} Host Clock Cycles`
+      });
+    }
+  }
+
+  // === TSCC: Timestamp Counter Configuration =============================
+  if ('TSCC' in reg && reg.TSCC.int32 !== undefined) {
+    const regValue = reg.TSCC.int32;
+
+    // 0. Extend existing register structure
+    reg.TSCC.fields = {};
+    reg.TSCC.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of TSCC register (M_CAN User Manual v3.3.1, page 14)
+    reg.TSCC.fields.TCP = getBits(regValue, 19, 16) + 1; // Timestamp Counter Prescaler (4 bits)
+    reg.TSCC.fields.TSS = getBits(regValue,  1,  0); // Timestamp Select (2 bits)
+
+    // 2. Generate human-readable register report
+    reg.TSCC.report.push({
+      severityLevel: sevC.Info, // info
+      msg: `TSCC: ${reg.TSCC.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[TCP] Timestamp Counter Prescaler = ${reg.TSCC.fields.TCP} (values 1..16)\n` +
+           `[TSS] Timestamp Select            = ${reg.TSCC.fields.TSS} (0: disabled, 1: TS counter internal, 2: TS counter external, 3: disabled)`
+    });
+  } // TSCC
+
+  // === TSCV: Timestamp Counter Value =========================================
+  if ('TSCV' in reg && reg.TSCV.int32 !== undefined) {
+    const regValue = reg.TSCV.int32;
+
+    // 0. Extend existing register structure
+    reg.TSCV.fields = {};
+    reg.TSCV.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of TSCV register (M_CAN User Manual v3.3.1, page 14)
+    reg.TSCV.fields.TSC = getBits(regValue, 15, 0); // Timestamp Counter Value (16 bits)
+
+    // 2. Generate human-readable register report
+    reg.TSCV.report.push({
+      severityLevel: sevC.Info, // info
+      msg: `TSCV: ${reg.TSCV.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[TSC] Timestamp Counter Value = ${reg.TSCV.fields.TSC} (counter width: 16 bit)`
+    });
+  } // TSCV
+
+  // === TOCC: Timeout Counter Configuration ==============================
+  if ('TOCC' in reg && reg.TOCC.int32 !== undefined) {
+    const regValue = reg.TOCC.int32;
+
+    // 0. Extend existing register structure
+    reg.TOCC.fields = {};
+    reg.TOCC.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of TOCC register (M_CAN User Manual v3.3.1, page 15)
+    reg.TOCC.fields.TOP  = getBits(regValue, 31, 16); // Timeout Period (16 bits)
+    reg.TOCC.fields.TOS  = getBits(regValue,  2,  1); // Timeout Select (2 bits)
+    reg.TOCC.fields.ETOC = getBits(regValue,  0,  0); // Enable Timeout Counter (1 bit)
+
+    // 2. Generate human-readable register report
+    reg.TOCC.report.push({
+      severityLevel: sevC.Info, // info
+      msg: `TOCC: ${reg.TOCC.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[TOP ] Timeout Period         = ${reg.TOCC.fields.TOP}\n` +
+           `[TOS ] Timeout Select         = ${reg.TOCC.fields.TOS} (0: continuous, 1: TX Event FIFO, 2: RX FIFO0, 3: RX FIFO1)\n` +
+           `[ETOC] Enable Timeout Counter = ${reg.TOCC.fields.ETOC}`  
+    });
+  }
+
+  // === TOCV: Timeout Counter Value ======================================
+  if ('TOCV' in reg && reg.TOCV.int32 !== undefined) {
+    const regValue = reg.TOCV.int32;
+
+    // 0. Extend existing register structure
+    reg.TOCV.fields = {};
+    reg.TOCV.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of TOCV register (M_CAN User Manual v3.3.1, page 15)
+    reg.TOCV.fields.TOC = getBits(regValue, 15, 0); // Timeout Counter Value (16 bits)
+
+    // 2. Generate human-readable register report
+    reg.TOCV.report.push({
+      severityLevel: sevC.Info, // info
+      msg: `TOCV: ${reg.TOCV.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[TOC] Timeout Counter Value = ${reg.TOCV.fields.TOC} (counter width: 16 bit)`
+    });
+  }
+
+  // === ECR: Error Counter Register =======================================
+  if ('ECR' in reg && reg.ECR.int32 !== undefined) {
+    const regValue = reg.ECR.int32;
+
+    // 0. Extend existing register structure
+    reg.ECR.fields = {};
+    reg.ECR.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of ECR register (M_CAN User Manual v3.3.1, page 16)
+    reg.ECR.fields.CEL = getBits(regValue, 23, 16); // CAN Error Logging (8 bits)
+    reg.ECR.fields.RP  = getBits(regValue, 15, 15); // Receive Error Passive (1 bit)
+    reg.ECR.fields.REC = getBits(regValue, 14,  8); // Receive Error Counter (7 bits)
+    reg.ECR.fields.TEC = getBits(regValue,  7,  0); // Transmit Error Counter (8 bits)
+
+    // 2. Generate human-readable register report
+    reg.ECR.report.push({
+      severityLevel: sevC.Info, // info
+      msg: `ECR: ${reg.ECR.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[CEL] CAN Error Logging      = ${reg.ECR.fields.CEL}\n` +
+           `[RP ] Receive Error Passive  = ${reg.ECR.fields.RP} (1: Rec. Err Counter reached Error Passive Level of 128)\n` +
+           `[REC] Receive Error Counter  = ${reg.ECR.fields.REC}\n` +
+           `[TEC] Transmit Error Counter = ${reg.ECR.fields.TEC}`
+    });
+
+    // 3. Add warnings if error counters are high
+    if (reg.ECR.fields.TEC > 0) {
+      reg.ECR.report.push({
+        severityLevel: sevC.Warn,
+        msg: `Transmit Error Counter (${reg.ECR.fields.TEC}) > 0: Transmit Errors seen recently.`
+      });
+    }
+    if (reg.ECR.fields.REC > 0) {
+      reg.ECR.report.push({
+        severityLevel: sevC.Warn,
+        msg: `Receive Error Counter (${reg.ECR.fields.REC}) > 0. Receive Errors seen recently.`
+      });
+    }
+    if (reg.ECR.fields.RP === 1) {
+      reg.ECR.report.push({
+        severityLevel: sevC.Warn,
+        msg: `Receive Error Passive flag is set. CAN controller is in error passive state for receive.`
+      });
+    }
+  }
+
   // === PSR: PRT Status Register =========================================
   if ('PSR' in reg && reg.PSR.int32 !== undefined) {
     const regValue = reg.PSR.int32;
@@ -699,7 +918,7 @@ function procRegsPrtOther(reg) {
       });
     }
   } // PSR
-
+  // TODO: Register-Addresse ausgeben bei jedem Register in der ersten Zeile.
   // TODO AB HIER: Check the decoding of the registers. It The code is written by copilot.
   // === EVNT: Event Status Flags Register ================================
   if ('EVNT' in reg && reg.EVNT.int32 !== undefined) {
@@ -887,55 +1106,6 @@ function procRegsPrtOther(reg) {
       reg.FIMC.report.push({
         severityLevel: sevC.Warn, // warning
         msg: `Fault Injection Module is enabled - this should only be used for testing`
-      });
-    }
-  }
-
-  // === TEST: Hardware Test Functions Register ========================
-  if ('TEST' in reg && reg.TEST.int32 !== undefined) {
-    const regValue = reg.TEST.int32;
-
-    // 0. Extend existing register structure
-    reg.TEST.fields = {};
-    reg.TEST.report = []; // Initialize report array
-
-    // 1. Decode all individual bits of TEST register
-    reg.TEST.fields.SVAL = getBits(regValue, 21, 21); // Start Value
-    reg.TEST.fields.TXBNS = getBits(regValue, 20, 16); // TX Buffer Number Select
-    reg.TEST.fields.PVAL = getBits(regValue, 15, 15); // Prepend Value
-    reg.TEST.fields.TXBNP = getBits(regValue, 14, 10); // TX Buffer Number Prepend
-    reg.TEST.fields.RX = getBits(regValue, 7, 7); // Receive Pin
-    reg.TEST.fields.TX = getBits(regValue, 6, 5); // TX Pin Control
-    reg.TEST.fields.LBCK = getBits(regValue, 4, 4); // Loop Back Mode
-    reg.TEST.fields.SILENT = getBits(regValue, 3, 3); // Silent Mode
-    reg.TEST.fields.BASIC = getBits(regValue, 2, 2); // Basic Mode
-
-    // 2. Generate human-readable register report
-    reg.TEST.report.push({
-      severityLevel: sevC.Info, // info
-      msg: `TEST: ${reg.TEST.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
-           `[SVAL ] Start Value              = ${reg.TEST.fields.SVAL}\n` +
-           `[TXBNS] TX Buffer Number Select  = ${reg.TEST.fields.TXBNS}\n` +
-           `[PVAL ] Prepend Value            = ${reg.TEST.fields.PVAL}\n` +
-           `[TXBNP] TX Buffer Number Prepend = ${reg.TEST.fields.TXBNP}\n` +
-           `[RX   ] Receive Pin              = ${reg.TEST.fields.RX}\n` +
-           `[TX   ] TX Pin Control           = ${reg.TEST.fields.TX}\n` +
-           `[LBCK ] Loop Back Mode           = ${reg.TEST.fields.LBCK}\n` +
-           `[SILENT] Silent Mode             = ${reg.TEST.fields.SILENT}\n` +
-           `[BASIC] Basic Mode               = ${reg.TEST.fields.BASIC}`
-    });
-
-    // 3. Add test mode information
-    if (reg.TEST.fields.LBCK === 1) {
-      reg.TEST.report.push({
-        severityLevel: sevC.Recom, // recommendation
-        msg: `Loop Back Mode is active - for testing only`
-      });
-    }
-    if (reg.TEST.fields.SILENT === 1) {
-      reg.TEST.report.push({
-        severityLevel: sevC.Recom, // recommendation
-        msg: `Silent Mode is active - controller will not transmit dominant bits`
       });
     }
   }
