@@ -918,6 +918,643 @@ function procRegsPrtOther(reg) {
       });
     }
   } // PSR
+
+  // === IR: Interrupt Register =======================================
+  if ('IR' in reg && reg.IR.int32 !== undefined) {
+    const regValue = reg.IR.int32;
+
+    // 0. Extend existing register structure
+    reg.IR.fields = {};
+    reg.IR.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of IR register (M_CAN User Manual v3.3.1, pages 20-24)
+    reg.IR.fields.ARA  = getBits(regValue, 29, 29); // Access to Reserved Address
+    reg.IR.fields.PED  = getBits(regValue, 28, 28); // Protocol Error in Data Phase
+    reg.IR.fields.PEA  = getBits(regValue, 27, 27); // Protocol Error in Arbitration Phase
+    reg.IR.fields.WDI  = getBits(regValue, 26, 26); // Watchdog Interrupt
+    reg.IR.fields.BO   = getBits(regValue, 25, 25); // Bus_Off Status
+    reg.IR.fields.EW   = getBits(regValue, 24, 24); // Warning Status
+    reg.IR.fields.EP   = getBits(regValue, 23, 23); // Error Passive
+    reg.IR.fields.ELO  = getBits(regValue, 22, 22); // Error Logging Overflow
+    reg.IR.fields.BEU  = getBits(regValue, 21, 21); // Bit Error Uncorrected
+    reg.IR.fields.BEC  = getBits(regValue, 20, 20); // Bit Error Corrected
+    reg.IR.fields.DRX  = getBits(regValue, 19, 19); // Message stored to Dedicated RX Buffer
+    reg.IR.fields.TOO  = getBits(regValue, 18, 18); // Timeout Occurred
+    reg.IR.fields.MRAF = getBits(regValue, 17, 17); // Message RAM Access Failure
+    reg.IR.fields.TSW  = getBits(regValue, 16, 16); // Timestamp Wraparound
+    reg.IR.fields.TEFL = getBits(regValue, 15, 15); // Tx Event FIFO Element Lost
+    reg.IR.fields.TEFF = getBits(regValue, 14, 14); // Tx Event FIFO Full
+    reg.IR.fields.TEFW = getBits(regValue, 13, 13); // Tx Event FIFO Watermark Reached
+    reg.IR.fields.TEFN = getBits(regValue, 12, 12); // Tx Event FIFO New Entry
+    reg.IR.fields.TFE  = getBits(regValue, 11, 11); // Tx FIFO Empty
+    reg.IR.fields.TCF  = getBits(regValue, 10, 10); // Transmission Cancellation Finished
+    reg.IR.fields.TC   = getBits(regValue, 9, 9);   // Transmission Completed
+    reg.IR.fields.HPM  = getBits(regValue, 8, 8);   // High Priority Message
+    reg.IR.fields.RF1L = getBits(regValue, 7, 7);   // Rx FIFO 1 Message Lost
+    reg.IR.fields.RF1F = getBits(regValue, 6, 6);   // Rx FIFO 1 Full
+    reg.IR.fields.RF1W = getBits(regValue, 5, 5);   // Rx FIFO 1 Watermark Reached
+    reg.IR.fields.RF1N = getBits(regValue, 4, 4);   // Rx FIFO 1 New Message
+    reg.IR.fields.RF0L = getBits(regValue, 3, 3);   // Rx FIFO 0 Message Lost
+    reg.IR.fields.RF0F = getBits(regValue, 2, 2);   // Rx FIFO 0 Full
+    reg.IR.fields.RF0W = getBits(regValue, 1, 1);   // Rx FIFO 0 Watermark Reached
+    reg.IR.fields.RF0N = getBits(regValue, 0, 0);   // Rx FIFO 0 New Message
+
+    // 2. Generate human-readable register report
+    reg.IR.report.push({
+      severityLevel: sevC.Info,
+      msg: `IR: ${reg.IR.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[ARA ] Access to Reserved Address      = ${reg.IR.fields.ARA}\n` +
+           `[PED ] Protocol Error Data Phase       = ${reg.IR.fields.PED}\n` +
+           `[PEA ] Protocol Error Arbitration      = ${reg.IR.fields.PEA}\n` +
+           `[WDI ] Watchdog Interrupt              = ${reg.IR.fields.WDI}\n` +
+           `[BO  ] Bus_Off Status                  = ${reg.IR.fields.BO}\n` +
+           `[EW  ] Warning Status                  = ${reg.IR.fields.EW}\n` +
+           `[EP  ] Error Passive                   = ${reg.IR.fields.EP}\n` +
+           `[ELO ] Error Logging Overflow          = ${reg.IR.fields.ELO}\n` +
+           `[BEU ] Bit Error Uncorrected           = ${reg.IR.fields.BEU}\n` +
+           `[BEC ] Bit Error Corrected             = ${reg.IR.fields.BEC}\n` +
+           `[DRX ] Msg stored at Dedic. RX Buffer  = ${reg.IR.fields.DRX}\n` +
+           `[TOO ] Timeout Occurred                = ${reg.IR.fields.TOO}\n` +
+           `[MRAF] Message RAM Access Failure      = ${reg.IR.fields.MRAF}\n` +
+           `[TSW ] Timestamp Wraparound            = ${reg.IR.fields.TSW}\n` +
+           `[TEFL] Tx Event FIFO Element Lost      = ${reg.IR.fields.TEFL}\n` +
+           `[TEFF] Tx Event FIFO Full              = ${reg.IR.fields.TEFF}\n` +
+           `[TEFW] Tx Event FIFO Watermark Reached = ${reg.IR.fields.TEFW}\n` +
+           `[TEFN] Tx Event FIFO New Entry         = ${reg.IR.fields.TEFN}\n` +
+           `[TFE ] Tx FIFO Empty                   = ${reg.IR.fields.TFE}\n` +
+           `[TCF ] Transmission Cancellation Fin.  = ${reg.IR.fields.TCF}\n` +
+           `[TC  ] Transmission Completed          = ${reg.IR.fields.TC}\n` +
+           `[HPM ] High Priority Message           = ${reg.IR.fields.HPM}\n` +
+           `[RF1L] Rx FIFO 1 Message Lost          = ${reg.IR.fields.RF1L}\n` +
+           `[RF1F] Rx FIFO 1 Full                  = ${reg.IR.fields.RF1F}\n` +
+           `[RF1W] Rx FIFO 1 Watermark Reached     = ${reg.IR.fields.RF1W}\n` +
+           `[RF1N] Rx FIFO 1 New Message           = ${reg.IR.fields.RF1N}\n` +
+           `[RF0L] Rx FIFO 0 Message Lost          = ${reg.IR.fields.RF0L}\n` +
+           `[RF0F] Rx FIFO 0 Full                  = ${reg.IR.fields.RF0F}\n` +
+           `[RF0W] Rx FIFO 0 Watermark Reached     = ${reg.IR.fields.RF0W}\n` +
+           `[RF0N] Rx FIFO 0 New Message           = ${reg.IR.fields.RF0N}`
+    });
+  } // IR
+
+  // === IE: Interrupt Enable Register =======================================
+  if ('IE' in reg && reg.IE.int32 !== undefined) {
+    const regValue = reg.IE.int32;
+
+    // 0. Extend existing register structure
+    reg.IE.fields = {};
+    reg.IE.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of IE register (M_CAN User Manual v3.3.1, pages 20-24)
+    reg.IE.fields.ARAE  = getBits(regValue, 29, 29); // Access to Reserved Address
+    reg.IE.fields.PEDE  = getBits(regValue, 28, 28); // Protocol Error in Data Phase
+    reg.IE.fields.PEAE  = getBits(regValue, 27, 27); // Protocol Error in Arbitration Phase
+    reg.IE.fields.WDIE  = getBits(regValue, 26, 26); // Watchdog Interrupt
+    reg.IE.fields.BOE   = getBits(regValue, 25, 25); // Bus_Off Status
+    reg.IE.fields.EWE   = getBits(regValue, 24, 24); // Warning Status
+    reg.IE.fields.EPE   = getBits(regValue, 23, 23); // Error Passive
+    reg.IE.fields.ELOE  = getBits(regValue, 22, 22); // Error Logging Overflow
+    reg.IE.fields.BEUE  = getBits(regValue, 21, 21); // Bit Error Uncorrected
+    reg.IE.fields.BECE  = getBits(regValue, 20, 20); // Bit Error Corrected
+    reg.IE.fields.DRXE  = getBits(regValue, 19, 19); // Message stored to Dedicated RX Buffer
+    reg.IE.fields.TOOE  = getBits(regValue, 18, 18); // Timeout Occurred
+    reg.IE.fields.MRAFE = getBits(regValue, 17, 17); // Message RAM Access Failure
+    reg.IE.fields.TSWE  = getBits(regValue, 16, 16); // Timestamp Wraparound
+    reg.IE.fields.TEFLE = getBits(regValue, 15, 15); // Tx Event FIFO Element Lost
+    reg.IE.fields.TEFFE = getBits(regValue, 14, 14); // Tx Event FIFO Full
+    reg.IE.fields.TEFWE = getBits(regValue, 13, 13); // Tx Event FIFO Watermark Reached
+    reg.IE.fields.TEFNE = getBits(regValue, 12, 12); // Tx Event FIFO New Entry
+    reg.IE.fields.TFEE  = getBits(regValue, 11, 11); // Tx FIFO Empty
+    reg.IE.fields.TCFE  = getBits(regValue, 10, 10); // Transmission Cancellation Finished
+    reg.IE.fields.TCE   = getBits(regValue, 9, 9);   // Transmission Completed
+    reg.IE.fields.HPME  = getBits(regValue, 8, 8);   // High Priority Message
+    reg.IE.fields.RF1LE = getBits(regValue, 7, 7);   // Rx FIFO 1 Message Lost
+    reg.IE.fields.RF1FE = getBits(regValue, 6, 6);   // Rx FIFO 1 Full
+    reg.IE.fields.RF1WE = getBits(regValue, 5, 5);   // Rx FIFO 1 Watermark Reached
+    reg.IE.fields.RF1NE = getBits(regValue, 4, 4);   // Rx FIFO 1 New Message
+    reg.IE.fields.RF0LE = getBits(regValue, 3, 3);   // Rx FIFO 0 Message Lost
+    reg.IE.fields.RF0FE = getBits(regValue, 2, 2);   // Rx FIFO 0 Full
+    reg.IE.fields.RF0WE = getBits(regValue, 1, 1);   // Rx FIFO 0 Watermark Reached
+    reg.IE.fields.RF0NE = getBits(regValue, 0, 0);   // Rx FIFO 0 New Message
+
+    // 2. Generate human-readable register report
+    reg.IE.report.push({
+      severityLevel: sevC.Info,
+      msg: `IE: ${reg.IE.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[ARAE ] Access to Reserved Address      = ${reg.IE.fields.ARAE}\n` +
+           `[PEDE ] Protocol Error Data Phase       = ${reg.IE.fields.PEDE}\n` +
+           `[PEAE ] Protocol Error Arbitration      = ${reg.IE.fields.PEAE}\n` +
+           `[WDIE ] Watchdog Interrupt              = ${reg.IE.fields.WDIE}\n` +
+           `[BOE  ] Bus_Off Status                  = ${reg.IE.fields.BOE}\n` +
+           `[EWE  ] Warning Status                  = ${reg.IE.fields.EWE}\n` +
+           `[EPE  ] Error Passive                   = ${reg.IE.fields.EPE}\n` +
+           `[ELOE ] Error Logging Overflow          = ${reg.IE.fields.ELOE}\n` +
+           `[BEUE ] Bit Error Uncorrected           = ${reg.IE.fields.BEUE}\n` +
+           `[BECE ] Bit Error Corrected             = ${reg.IE.fields.BECE}\n` +
+           `[DRXE ] Msg stored at Dedic. RX Buffer  = ${reg.IE.fields.DRXE}\n` +
+           `[TOOE ] Timeout Occurred                = ${reg.IE.fields.TOOE}\n` +
+           `[MRAFE] Message RAM Access Failure      = ${reg.IE.fields.MRAFE}\n` +
+           `[TSWE ] Timestamp Wraparound            = ${reg.IE.fields.TSWE}\n` +
+           `[TEFLE] Tx Event FIFO Element Lost      = ${reg.IE.fields.TEFLE}\n` +
+           `[TEFFE] Tx Event FIFO Full              = ${reg.IE.fields.TEFFE}\n` +
+           `[TEFWE] Tx Event FIFO Watermark Reached = ${reg.IE.fields.TEFWE}\n` +
+           `[TEFNE] Tx Event FIFO New Entry         = ${reg.IE.fields.TEFNE}\n` +
+           `[TFEE ] Tx FIFO Empty                   = ${reg.IE.fields.TFEE}\n` +
+           `[TCFE ] Transmission Cancellation Fin.  = ${reg.IE.fields.TCFE}\n` +
+           `[TCE  ] Transmission Completed          = ${reg.IE.fields.TCE}\n` +
+           `[HPME ] High Priority Message           = ${reg.IE.fields.HPME}\n` +
+           `[RF1LE] Rx FIFO 1 Message Lost          = ${reg.IE.fields.RF1LE}\n` +
+           `[RF1FE] Rx FIFO 1 Full                  = ${reg.IE.fields.RF1FE}\n` +
+           `[RF1WE] Rx FIFO 1 Watermark Reached     = ${reg.IE.fields.RF1WE}\n` +
+           `[RF1NE] Rx FIFO 1 New Message           = ${reg.IE.fields.RF1NE}\n` +
+           `[RF0LE] Rx FIFO 0 Message Lost          = ${reg.IE.fields.RF0LE}\n` +
+           `[RF0FE] Rx FIFO 0 Full                  = ${reg.IE.fields.RF0FE}\n` +
+           `[RF0WE] Rx FIFO 0 Watermark Reached     = ${reg.IE.fields.RF0WE}\n` +
+           `[RF0NE] Rx FIFO 0 New Message           = ${reg.IE.fields.RF0NE}`
+    });
+  } // IE
+
+  // === ILS: Interrupt Line Select Register =======================================
+  if ('ILS' in reg && reg.ILS.int32 !== undefined) {
+    const regValue = reg.ILS.int32;
+
+    // 0. Extend existing register structure
+    reg.ILS.fields = {};
+    reg.ILS.report = []; // Initialize report array
+
+    // 1. Decode all individual bits of IE register (M_CAN User Manual v3.3.1, pages 20-24)
+    reg.ILS.fields.ARAL  = getBits(regValue, 29, 29); // Access to Reserved Address
+    reg.ILS.fields.PEDL  = getBits(regValue, 28, 28); // Protocol Error in Data Phase
+    reg.ILS.fields.PEAL  = getBits(regValue, 27, 27); // Protocol Error in Arbitration Phase
+    reg.ILS.fields.WDIL  = getBits(regValue, 26, 26); // Watchdog Interrupt
+    reg.ILS.fields.BOL   = getBits(regValue, 25, 25); // Bus_Off Status
+    reg.ILS.fields.EWL   = getBits(regValue, 24, 24); // Warning Status
+    reg.ILS.fields.EPL   = getBits(regValue, 23, 23); // Error Passive
+    reg.ILS.fields.ELOL  = getBits(regValue, 22, 22); // Error Logging Overflow
+    reg.ILS.fields.BEUL  = getBits(regValue, 21, 21); // Bit Error Uncorrected
+    reg.ILS.fields.BECL  = getBits(regValue, 20, 20); // Bit Error Corrected
+    reg.ILS.fields.DRXL  = getBits(regValue, 19, 19); // Message stored to Dedicated RX Buffer
+    reg.ILS.fields.TOOL  = getBits(regValue, 18, 18); // Timeout Occurred
+    reg.ILS.fields.MRAFL = getBits(regValue, 17, 17); // Message RAM Access Failure
+    reg.ILS.fields.TSWL  = getBits(regValue, 16, 16); // Timestamp Wraparound
+    reg.ILS.fields.TEFLL = getBits(regValue, 15, 15); // Tx Event FIFO Element Lost
+    reg.ILS.fields.TEFFL = getBits(regValue, 14, 14); // Tx Event FIFO Full
+    reg.ILS.fields.TEFWL = getBits(regValue, 13, 13); // Tx Event FIFO Watermark Reached
+    reg.ILS.fields.TEFNL = getBits(regValue, 12, 12); // Tx Event FIFO New Entry
+    reg.ILS.fields.TFEL  = getBits(regValue, 11, 11); // Tx FIFO Empty
+    reg.ILS.fields.TCFL  = getBits(regValue, 10, 10); // Transmission Cancellation Finished
+    reg.ILS.fields.TCL   = getBits(regValue, 9, 9);   // Transmission Completed
+    reg.ILS.fields.HPML  = getBits(regValue, 8, 8);   // High Priority Message
+    reg.ILS.fields.RF1LL = getBits(regValue, 7, 7);   // Rx FIFO 1 Message Lost
+    reg.ILS.fields.RF1FL = getBits(regValue, 6, 6);   // Rx FIFO 1 Full
+    reg.ILS.fields.RF1WL = getBits(regValue, 5, 5);   // Rx FIFO 1 Watermark Reached
+    reg.ILS.fields.RF1NL = getBits(regValue, 4, 4);   // Rx FIFO 1 New Message
+    reg.ILS.fields.RF0LL = getBits(regValue, 3, 3);   // Rx FIFO 0 Message Lost
+    reg.ILS.fields.RF0FL = getBits(regValue, 2, 2);   // Rx FIFO 0 Full
+    reg.ILS.fields.RF0WL = getBits(regValue, 1, 1);   // Rx FIFO 0 Watermark Reached
+    reg.ILS.fields.RF0NL = getBits(regValue, 0, 0);   // Rx FIFO 0 New Message
+
+    // 2. Generate human-readable register report
+    reg.ILS.report.push({
+      severityLevel: sevC.Info,
+      msg: `ILS: ${reg.ILS.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[ARAL ] Access to Reserved Address      = ${reg.ILS.fields.ARAL}\n` +
+           `[PEDL ] Protocol Error Data Phase       = ${reg.ILS.fields.PEDL}\n` +
+           `[PEAL ] Protocol Error Arbitration      = ${reg.ILS.fields.PEAL}\n` +
+           `[WDIL ] Watchdog Interrupt              = ${reg.ILS.fields.WDIL}\n` +
+           `[BOL  ] Bus_Off Status                  = ${reg.ILS.fields.BOL}\n` +
+           `[EWL  ] Warning Status                  = ${reg.ILS.fields.EWL}\n` +
+           `[EPL  ] Error Passive                   = ${reg.ILS.fields.EPL}\n` +
+           `[ELOL ] Error Logging Overflow          = ${reg.ILS.fields.ELOL}\n` +
+           `[BEUL ] Bit Error Uncorrected           = ${reg.ILS.fields.BEUL}\n` +
+           `[BECL ] Bit Error Corrected             = ${reg.ILS.fields.BECL}\n` +
+           `[DRXL ] Msg stored at Dedic. RX Buffer  = ${reg.ILS.fields.DRXL}\n` +
+           `[TOOL ] Timeout Occurred                = ${reg.ILS.fields.TOOL}\n` +
+           `[MRAFL] Message RAM Access Failure      = ${reg.ILS.fields.MRAFL}\n` +
+           `[TSWL ] Timestamp Wraparound            = ${reg.ILS.fields.TSWL}\n` +
+           `[TEFLL] Tx Event FIFO Element Lost      = ${reg.ILS.fields.TEFLL}\n` +
+           `[TEFFL] Tx Event FIFO Full              = ${reg.ILS.fields.TEFFL}\n` +
+           `[TEFWL] Tx Event FIFO Watermark Reached = ${reg.ILS.fields.TEFWL}\n` +
+           `[TEFNL] Tx Event FIFO New Entry         = ${reg.ILS.fields.TEFNL}\n` +
+           `[TFEL ] Tx FIFO Empty                   = ${reg.ILS.fields.TFEL}\n` +
+           `[TCFL ] Transmission Cancellation Fin.  = ${reg.ILS.fields.TCFL}\n` +
+           `[TCL  ] Transmission Completed          = ${reg.ILS.fields.TCL}\n` +
+           `[HPML ] High Priority Message           = ${reg.ILS.fields.HPML}\n` +
+           `[RF1LL] Rx FIFO 1 Message Lost          = ${reg.ILS.fields.RF1LL}\n` +
+           `[RF1FL] Rx FIFO 1 Full                  = ${reg.ILS.fields.RF1FL}\n` +
+           `[RF1WL] Rx FIFO 1 Watermark Reached     = ${reg.ILS.fields.RF1WL}\n` +
+           `[RF1NL] Rx FIFO 1 New Message           = ${reg.ILS.fields.RF1NL}\n` +
+           `[RF0LL] Rx FIFO 0 Message Lost          = ${reg.ILS.fields.RF0LL}\n` +
+           `[RF0FL] Rx FIFO 0 Full                  = ${reg.ILS.fields.RF0FL}\n` +
+           `[RF0WL] Rx FIFO 0 Watermark Reached     = ${reg.ILS.fields.RF0WL}\n` +
+           `[RF0NL] Rx FIFO 0 New Message           = ${reg.ILS.fields.RF0NL}`
+    });
+  } // ILS
+
+  // Horziontal & Bit-wise view of IR Flags and IE 
+  //       
+  //     A P P W          E
+  //     R E A D    B E E L
+  //     A D E I    O W P O
+  // IR: 0 0 0 0    1 1 1 1  ...
+  // IE  0 0 0 0    0 0 1 1  ...
+  if (reg.IE !== undefined && reg.IR !== undefined) {
+    // Use IR bit names and order for both IR and IE
+    const irBitNames = [
+      "ARA", "PED", "PEA", "WDI", "BO", "EW", "EP", "ELO", "BEU", "BEC", "DRX", "TOO", "MRAF", "TSW",
+      "TEFL", "TEFF", "TEFW", "TEFN", "TFE", "TCF", "TC", "HPM", "RF1L", "RF1F", "RF1W", "RF1N", "RF0L", "RF0F", "RF0W", "RF0N"
+    ];
+    // Build vertical bit name header
+    let header = "    ";
+    const maxLen = Math.max(...irBitNames.map(n => n.length));
+    // Bottom align: print from top, but pad each name at the top so the last char is at the bottom
+    for (let row = 0; row < maxLen; row++) {
+      let line = "";
+      for (let i = 0; i < irBitNames.length; i++) {
+        const idx = row - (maxLen - irBitNames[i].length);
+        line += (idx >= 0 && idx < irBitNames[i].length ? irBitNames[i][idx] : " ") + " ";
+        if ((i + 1) % 4 === 0 && i !== irBitNames.length - 1) line += "  ";
+      }
+      header += line + "\n    ";
+    }
+    header = header.trimEnd() + "\n";
+    // Build IR and IE bit value lines
+    let irLine = "IR: ";
+    let ieLine = "IE: ";
+    for (let i = 0; i < irBitNames.length; i++) {
+      const irVal = reg.IR.fields[irBitNames[i]] !== undefined ? reg.IR.fields[irBitNames[i]] : " ";
+      const ieVal = reg.IE.fields[irBitNames[i]+"E"] !== undefined ? reg.IE.fields[irBitNames[i]+"E"] : " ";
+      irLine += irVal + " ";
+      ieLine += ieVal + " ";
+      if ((i + 1) % 4 === 0 && i !== irBitNames.length - 1) {
+        irLine += "  ";
+        ieLine += "  ";
+      }
+    }
+    irLine = irLine.trimEnd() + "\n";
+    ieLine = ieLine.trimEnd(); // no new line, since this is the bottom line
+    // Add to report
+    reg.IE.report.push({
+      severityLevel: sevC.Info,
+      msg: `IR and IE - combined bit wise view\n`+ header + irLine + ieLine
+    });
+  } // IR and IE
+
+  // === ILE: Interrupt Line Enable Register =============================
+  if ('ILE' in reg && reg.ILE.int32 !== undefined) {
+    const regValue = reg.ILE.int32;
+
+    // 0. Extend existing register structure
+    reg.ILE.fields = {};
+    reg.ILE.report = [];
+
+    // 1. Decode all individual bits of ILE register (M_CAN User Manual v3.3.1, page 26)
+    reg.ILE.fields.EINT1 = getBits(regValue, 1, 1); // Enable Interrupt Line 1
+    reg.ILE.fields.EINT0 = getBits(regValue, 0, 0); // Enable Interrupt Line 0
+
+    // 2. Generate human-readable register report
+    reg.ILE.report.push({
+      severityLevel: sevC.Info,
+      msg: `ILE: ${reg.ILE.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[EINT0] Enable Interrupt Line 0 = ${reg.ILE.fields.EINT0}\n` +
+           `[EINT1] Enable Interrupt Line 1 = ${reg.ILE.fields.EINT1}`
+    });
+  } // ILE
+
+  // === GFC: Global Filter Configuration Register =======================
+  if ('GFC' in reg && reg.GFC.int32 !== undefined) {
+    const regValue = reg.GFC.int32;
+
+    // 0. Extend existing register structure
+    reg.GFC.fields = {};
+    reg.GFC.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 27)
+    reg.GFC.fields.ANFS = getBits(regValue, 5, 4); // Accept Non-matching Frames Standard (2 bits)
+    reg.GFC.fields.ANFE = getBits(regValue, 3, 2); // Accept Non-matching Frames Extended (2 bits)
+    reg.GFC.fields.RRFS = getBits(regValue, 1, 1); // Reject Remote Frames Standard
+    reg.GFC.fields.RRFE = getBits(regValue, 0, 0); // Reject Remote Frames Extended
+
+    // 2. Generate human-readable register report
+    reg.GFC.report.push({
+      severityLevel: sevC.Info,
+      msg: `GFC: ${reg.GFC.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[ANFS] Accept Non-matching Frames Standard   = ${reg.GFC.fields.ANFS}\n` +
+           `[ANFE] Accept Non-matching Frames Extended   = ${reg.GFC.fields.ANFE}\n` +
+           `[RRFS] Reject Remote Frames Standard         = ${reg.GFC.fields.RRFS}\n` +
+           `[RRFE] Reject Remote Frames Extended         = ${reg.GFC.fields.RRFE}`
+          });
+  } // GFC
+
+  // === SIDFC: Standard ID Filter Configuration Register ================
+  if ('SIDFC' in reg && reg.SIDFC.int32 !== undefined) {
+    const regValue = reg.SIDFC.int32;
+
+    // 0. Extend existing register structure
+    reg.SIDFC.fields = {};
+    reg.SIDFC.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 28)
+    reg.SIDFC.fields.LSS   = getBits(regValue, 23, 16); // List Size Standard (8 bits)
+    reg.SIDFC.fields.FLSSA = getBits(regValue, 15,  2); // Filter List Standard Start Address (14 bits)
+
+    // 2. Generate human-readable register report
+    reg.SIDFC.report.push({
+      severityLevel: sevC.Info,
+      msg: `SIDFC: ${reg.SIDFC.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[LSS  ] List Size Standard            = ${reg.SIDFC.fields.LSS}\n` +
+           `[FLSSA] Filter List Std Start Address = 0x${(reg.SIDFC.fields.FLSSA << 2).toString(16).toUpperCase().padStart(4, '0')} (= dec ${reg.SIDFC.fields.FLSSA<<2}) (16 bit byte address, 2LSB=00)`
+    });
+  } // SIDFC
+
+  // === XIDFC: Extended ID Filter Configuration Register ================
+  if ('XIDFC' in reg && reg.XIDFC.int32 !== undefined) {
+    const regValue = reg.XIDFC.int32;
+
+    // 0. Extend existing register structure
+    reg.XIDFC.fields = {};
+    reg.XIDFC.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 28)
+    reg.XIDFC.fields.LSE   = getBits(regValue, 22, 16); // List Size Extended (7 bits)
+    reg.XIDFC.fields.FLESA = getBits(regValue, 15,  2); // Filter List Extended Start Address (14 bits)
+
+    // 2. Generate human-readable register report
+    reg.XIDFC.report.push({
+      severityLevel: sevC.Info,
+      msg: `XIDFC: ${reg.XIDFC.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[LSE  ] List Size Extended            = ${reg.XIDFC.fields.LSE}\n` +
+           `[FLESA] Filter List Ext Start Address = 0x${(reg.XIDFC.fields.FLESA << 2).toString(16).toUpperCase().padStart(4, '0')} (= dec ${reg.XIDFC.fields.FLESA<<2}) (16 bit byte address, 2LSB=00)`
+    });
+  } // XIDFC
+
+  // === XIDAM: Extended ID AND Mask Register ============================
+  if ('XIDAM' in reg && reg.XIDAM.int32 !== undefined) {
+    const regValue = reg.XIDAM.int32;
+
+    // 0. Extend existing register structure
+    reg.XIDAM.fields = {};
+    reg.XIDAM.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 29)
+    reg.XIDAM.fields.XIDAM = getBits(regValue, 28, 0); // Extended ID AND Mask (29 bits)
+
+    // 2. Generate human-readable register report
+    reg.XIDAM.report.push({
+      severityLevel: sevC.Info,
+      msg: `XIDAM: ${reg.XIDAM.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[XIDAM] Extended ID AND Mask = 0x${reg.XIDAM.fields.XIDAM.toString(16).toUpperCase().padStart(8, '0')} (use: message ID AND this mask, 1...1 => no impact)`
+    });
+  } // XIDAM
+
+  // === HPMS: High Priority Message Status Register ======================
+  if ('HPMS' in reg && reg.HPMS.int32 !== undefined) {
+    const regValue = reg.HPMS.int32;
+
+    // 0. Extend existing register structure
+    reg.HPMS.fields = {};
+    reg.HPMS.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 29)
+    reg.HPMS.fields.FLST = getBits(regValue, 15, 15); // Filter List (1 bit)
+    reg.HPMS.fields.FIDX = getBits(regValue, 14,  8);  // Filter Index (7 bits)
+    reg.HPMS.fields.MSI  = getBits(regValue,  7,  6);   // Message Storage Indicator (2 bits)
+    reg.HPMS.fields.BIDX = getBits(regValue,  5,  0);   // Buffer Index (6 bits)
+
+    // 2. Generate human-readable register report
+    reg.HPMS.report.push({
+      severityLevel: sevC.Info,
+      msg: `HPMS: ${reg.HPMS.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[FLST] Filter List               = ${reg.HPMS.fields.FLST} (0: Std, 1: Ext)\n` +
+           `[FIDX] Filter Index              = ${reg.HPMS.fields.FIDX}\n` +
+           `[MSI ] Message Storage Indicator = ${reg.HPMS.fields.MSI} (0: no FIFO sel, 1: FIFO msg lost, 2: Msg in FIFO0, 3: Msg in FIFO1)\n` +
+           `[BIDX] Buffer Index              = ${reg.HPMS.fields.BIDX} (only valid when MSI=2 or 3)`
+    });
+  } // HPMS
+
+  // === NDAT1: New Data 1 Register =======================================
+  if ('NDAT1' in reg && reg.NDAT1.int32 !== undefined) {
+    const regValue = reg.NDAT1.int32;
+
+    // 0. Extend existing register structure
+    reg.NDAT1.fields = {};
+    reg.NDAT1.report = [];
+
+    // 1. Decode all individual bits (M_CAN User Manual v3.3.1, page 30)
+    for (let i = 0; i < 32; i++) {
+      reg.NDAT1.fields[`ND${i}`] = getBits(regValue, i, i); // New Data flags for RX Buffer 0-31
+    }
+
+    // 2. Generate human-readable register report
+    // 31 ..                          0
+    // 0 0 0 0   1 0 1 0   ...  1 0 0 0
+    let ndat1Msg = `NDAT1: ${reg.NDAT1.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n`;
+    // Binary headline and bitwise value
+    let headline = "Bit: 31                  23                  15                  7               0\n";
+    let binaryLine = "     ";
+    for (let i = 31; i >= 0; i--) {
+      binaryLine += reg.NDAT1.fields[`ND${i}`];
+      if (i > 0) binaryLine += " ";
+      if (i % 4 === 0 && i > 0) binaryLine += "  ";
+    }
+    reg.NDAT1.report.push({
+      severityLevel: sevC.Info,
+      msg: `NDAT1: ${reg.NDAT1.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` + headline + binaryLine
+    });
+  } // NDAT1
+
+  // === NDAT2: New Data 2 Register =======================================
+  if ('NDAT2' in reg && reg.NDAT2.int32 !== undefined) {
+    const regValue = reg.NDAT2.int32;
+
+    // 0. Extend existing register structure
+    reg.NDAT2.fields = {};
+    reg.NDAT2.report = [];
+
+    // 1. Decode all individual bits (M_CAN User Manual v3.3.1, page 30)
+    for (let i = 0; i < 32; i++) {
+      reg.NDAT2.fields[`ND${i+32}`] = getBits(regValue, i, i); // New Data flags for RX Buffer 32-63
+    }
+
+    // 2. Generate human-readable register report
+    let ndat2Msg = `NDAT2: ${reg.NDAT2.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n`;
+    // Binary headline and bitwise value
+    let headline2 = "Bit: 63                  55                  47                  39             32\n";
+    let binaryLine2 = "     ";
+    for (let i = 63; i >= 32; i--) {
+      binaryLine2 += reg.NDAT2.fields[`ND${i}`];
+      if (i > 32) binaryLine2 += " ";
+      if (i % 4 === 0 && i > 32) binaryLine2 += "  ";
+    }
+    reg.NDAT2.report.push({
+      severityLevel: sevC.Info,
+      msg: `NDAT2: ${reg.NDAT2.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` + headline2 + binaryLine2
+    });
+  } // NDAT2
+
+  // === RXF0C: Rx FIFO 0 Configuration Register =========================
+  if ('RXF0C' in reg && reg.RXF0C.int32 !== undefined) {
+    const regValue = reg.RXF0C.int32;
+
+    // 0. Extend existing register structure
+    reg.RXF0C.fields = {};
+    reg.RXF0C.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 31)
+    reg.RXF0C.fields.F0OM = getBits(regValue, 31, 31); // FIFO 0 Operation Mode (1 bit)
+    reg.RXF0C.fields.F0WM = getBits(regValue, 30, 24); // Rx FIFO 0 Watermark (7 bits)
+    reg.RXF0C.fields.F0S  = getBits(regValue, 22, 16); // Rx FIFO 0 Size (6 bits)
+    reg.RXF0C.fields.F0SA = getBits(regValue, 15,  2); // Rx FIFO 0 Start Address (14 bits)
+
+    // 2. Generate human-readable register report
+    reg.RXF0C.report.push({
+      severityLevel: sevC.Info,
+      msg: `RXF0C: ${reg.RXF0C.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[F0OM] RX FIFO 0 Operation Mode = ${reg.RXF0C.fields.F0OM} (0: blocking, 1: overwrite)\n` +
+           `[F0WM] Rx FIFO 0 Watermark      = ${reg.RXF0C.fields.F0WM} (0: watermard disabled)\n` +
+           `[F0S ] Rx FIFO 0 Size           = ${reg.RXF0C.fields.F0S}\n` +
+           `[F0SA] Rx FIFO 0 Start Address  = 0x${(reg.RXF0C.fields.F0SA<<2).toString(16).toUpperCase().padStart(4, '0')} (16 bit byte address, 2LSB=00)`
+    });
+  } // RXF0C
+
+  // === RXF0S: Rx FIFO 0 Status Register ================================
+  if ('RXF0S' in reg && reg.RXF0S.int32 !== undefined) {
+    const regValue = reg.RXF0S.int32;
+
+    // 0. Extend existing register structure
+    reg.RXF0S.fields = {};
+    reg.RXF0S.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 32)
+    reg.RXF0S.fields.RF0L = getBits(regValue, 25, 25); // Rx FIFO 0 Message Lost (1 bit)
+    reg.RXF0S.fields.F0F  = getBits(regValue, 24, 24); // Rx FIFO 0 Full (1 bit)
+    reg.RXF0S.fields.F0PI = getBits(regValue, 21, 16); // Rx FIFO 0 Put Index (6 bits)
+    reg.RXF0S.fields.F0GI = getBits(regValue, 13,  8); // Rx FIFO 0 Get Index (6 bits)
+    reg.RXF0S.fields.F0FL = getBits(regValue,  6,  0); // Rx FIFO 0 Fill Level (7 bits)
+
+    // 2. Generate human-readable register report
+    reg.RXF0S.report.push({
+      severityLevel: sevC.Info,
+      msg: `RXF0S: ${reg.RXF0S.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[RF0L] Rx FIFO 0 Message Lost = ${reg.RXF0S.fields.RF0L}\n` +
+           `[F0F ] Rx FIFO 0 Full         = ${reg.RXF0S.fields.F0F}\n` +
+           `[F0PI] Rx FIFO 0 Put Index    = ${reg.RXF0S.fields.F0PI}\n` +
+           `[F0GI] Rx FIFO 0 Get Index    = ${reg.RXF0S.fields.F0GI}\n` +
+           `[F0FL] Rx FIFO 0 Fill Level   = ${reg.RXF0S.fields.F0FL}`
+    });
+  } // RXF0S
+
+  // === RXF0A: Rx FIFO 0 Acknowledge Register ===========================
+  if ('RXF0A' in reg && reg.RXF0A.int32 !== undefined) {
+    const regValue = reg.RXF0A.int32;
+
+    // 0. Extend existing register structure
+    reg.RXF0A.fields = {};
+    reg.RXF0A.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 33)
+    reg.RXF0A.fields.F0AI = getBits(regValue, 5, 0); // Rx FIFO 0 Acknowledge Index (6 bits)
+
+    // 2. Generate human-readable register report
+    reg.RXF0A.report.push({
+      severityLevel: sevC.Info,
+      msg: `RXF0A: ${reg.RXF0A.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[F0AI] Rx FIFO 0 Acknowledge Index = ${reg.RXF0A.fields.F0AI}`
+    });
+  } // RXF0A
+
+  // === RXBC: Rx Buffer Configuration Register =========================
+  if ('RXBC' in reg && reg.RXBC.int32 !== undefined) {
+    const regValue = reg.RXBC.int32;
+
+    // 0. Extend existing register structure
+    reg.RXBC.fields = {};
+    reg.RXBC.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 33)
+    reg.RXBC.fields.RBSA = getBits(regValue, 15, 2); // Rx Buffer Start Address (14 bits)
+
+    // 2. Generate human-readable register report
+    reg.RXBC.report.push({
+      severityLevel: sevC.Info,
+      msg: `RXBC: ${reg.RXBC.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[RBSA] Rx Buffer Start Address = 0x${(reg.RXBC.fields.RBSA<<2).toString(16).toUpperCase().padStart(4, '0')} (16 bit byte address, 2LSB=00)`
+    });
+  } // RXBC
+
+  // === RXF1C: Rx FIFO 1 Configuration Register =========================
+  if ('RXF1C' in reg && reg.RXF1C.int32 !== undefined) {
+    const regValue = reg.RXF1C.int32;
+
+    // 0. Extend existing register structure
+    reg.RXF1C.fields = {};
+    reg.RXF1C.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 31)
+  reg.RXF1C.fields.F1OM = getBits(regValue, 31, 31); // FIFO 1 Operation Mode (1 bit)
+  reg.RXF1C.fields.F1WM = getBits(regValue, 30, 24); // Rx FIFO 1 Watermark (7 bits)
+  reg.RXF1C.fields.F1S  = getBits(regValue, 21, 16); // Rx FIFO 1 Size (6 bits)
+  reg.RXF1C.fields.F1SA = getBits(regValue, 15,  2); // Rx FIFO 1 Start Address (14 bits)
+
+    // 2. Generate human-readable register report
+    reg.RXF1C.report.push({
+      severityLevel: sevC.Info,
+      msg: `RXF1C: ${reg.RXF1C.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[F1OM] Rx FIFO 1 Operation Mode = ${reg.RXF1C.fields.F1OM}\n` +
+           `[F1WM] Rx FIFO 1 Watermark      = ${reg.RXF1C.fields.F1WM}\n` +
+           `[F1S ] Rx FIFO 1 Size           = ${reg.RXF1C.fields.F1S}\n` +
+           `[F1SA] Rx FIFO 1 Start Address  = 0x${(reg.RXF1C.fields.F1SA<<2).toString(16).toUpperCase().padStart(4, '0')} (16 bit byte address, 2LSB=00)`
+    });
+  } // RXF1C
+
+  // === RXF1S: Rx FIFO 1 Status Register ================================
+  if ('RXF1S' in reg && reg.RXF1S.int32 !== undefined) {
+    const regValue = reg.RXF1S.int32;
+
+    // 0. Extend existing register structure
+    reg.RXF1S.fields = {};
+    reg.RXF1S.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 32)
+  reg.RXF1S.fields.RF1L = getBits(regValue, 25, 25); // Rx FIFO 1 Message Lost (1 bit)
+  reg.RXF1S.fields.F1F  = getBits(regValue, 24, 24); // Rx FIFO 1 Full (1 bit)
+  reg.RXF1S.fields.F1PI = getBits(regValue, 21, 16); // Rx FIFO 1 Put Index (6 bits)
+  reg.RXF1S.fields.F1GI = getBits(regValue, 13,  8); // Rx FIFO 1 Get Index (6 bits)
+  reg.RXF1S.fields.F1FL = getBits(regValue,  6,  0); // Rx FIFO 1 Fill Level (7 bits)
+
+    // 2. Generate human-readable register report
+    reg.RXF1S.report.push({
+      severityLevel: sevC.Info,
+      msg: `RXF1S: ${reg.RXF1S.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[F1FL] Rx FIFO 1 Fill Level   = ${reg.RXF1S.fields.F1FL}\n` +
+           `[F1GI] Rx FIFO 1 Get Index    = ${reg.RXF1S.fields.F1GI}\n` +
+           `[F1PI] Rx FIFO 1 Put Index    = ${reg.RXF1S.fields.F1PI}\n` +
+           `[F1F ] Rx FIFO 1 Full         = ${reg.RXF1S.fields.F1F}\n` +
+           `[RF1L] Rx FIFO 1 Message Lost = ${reg.RXF1S.fields.RF1L}`
+    });
+  } // RXF1S
+
+  // === RXF1A: Rx FIFO 1 Acknowledge Register ===========================
+  if ('RXF1A' in reg && reg.RXF1A.int32 !== undefined) {
+    const regValue = reg.RXF1A.int32;
+
+    // 0. Extend existing register structure
+    reg.RXF1A.fields = {};
+    reg.RXF1A.report = [];
+
+    // 1. Decode all individual bits/fields (M_CAN User Manual v3.3.1, page 33)
+  reg.RXF1A.fields.F1AI = getBits(regValue, 5, 0); // Rx FIFO 1 Acknowledge Index (6 bits)
+
+    // 2. Generate human-readable register report
+    reg.RXF1A.report.push({
+      severityLevel: sevC.Info,
+      msg: `RXF1A: ${reg.RXF1A.name_long} (0x${regValue.toString(16).toUpperCase().padStart(8, '0')})\n` +
+           `[F1AI] Rx FIFO 1 Acknowledge Index = ${reg.RXF1A.fields.F1AI}`
+    });
+  } // RXF1A
+
+
+  // add here new register decodings
+
   // TODO: Register-Addresse ausgeben bei jedem Register in der ersten Zeile.
   // TODO AB HIER: Check the decoding of the registers. It The code is written by copilot.
   // === EVNT: Event Status Flags Register ================================
@@ -936,14 +1573,14 @@ function procRegsPrtOther(reg) {
     reg.EVNT.fields.WKUI = getBits(regValue, 27, 27); // Wake Up Interrupt
     reg.EVNT.fields.MRAF = getBits(regValue, 17, 17); // Message RAM Access Failure
     reg.EVNT.fields.TSWE = getBits(regValue, 16, 16); // Timestamp Wraparound Event
-    reg.EVNT.fields.ELO = getBits(regValue, 15, 15); // Error Logging Overflow
-    reg.EVNT.fields.EP = getBits(regValue, 14, 14); // Error Passive
-    reg.EVNT.fields.EW = getBits(regValue, 13, 13); // Error Warning
-    reg.EVNT.fields.BO = getBits(regValue, 12, 12); // Bus Off
-    reg.EVNT.fields.WDI = getBits(regValue, 11, 11); // Watchdog Interrupt
-    reg.EVNT.fields.PEA = getBits(regValue, 10, 10); // Protocol Error in Arbitration Phase
-    reg.EVNT.fields.PED = getBits(regValue, 9, 9); // Protocol Error in Data Phase
-    reg.EVNT.fields.ARA = getBits(regValue, 8, 8); // Access to Reserved Address
+    reg.EVNT.fields.ELO  = getBits(regValue, 15, 15); // Error Logging Overflow
+    reg.EVNT.fields.EP   = getBits(regValue, 14, 14); // Error Passive
+    reg.EVNT.fields.EW   = getBits(regValue, 13, 13); // Error Warning
+    reg.EVNT.fields.BO   = getBits(regValue, 12, 12); // Bus Off
+    reg.EVNT.fields.WDI  = getBits(regValue, 11, 11); // Watchdog Interrupt
+    reg.EVNT.fields.PEA  = getBits(regValue, 10, 10); // Protocol Error in Arbitration Phase
+    reg.EVNT.fields.PED  = getBits(regValue, 9, 9);   // Protocol Error in Data Phase
+    reg.EVNT.fields.ARA  = getBits(regValue, 8, 8);   // Access to Reserved Address
 
     // 2. Generate human-readable register report
     reg.EVNT.report.push({
@@ -1109,5 +1746,4 @@ function procRegsPrtOther(reg) {
       });
     }
   }
-
 }

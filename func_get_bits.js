@@ -9,6 +9,9 @@ export const sevC = {
 
 // Helper function to extract bits from register value
 export function getBits(regVal, endBit, startBit) {
+  // endBit: with larger index
+  // startBit: with smaller index
+  // example: getBits(0b11110000, 4, 3) => 0b10
   const length = endBit - startBit + 1;
   const mask = (1 << length) - 1;
   return (regVal >> startBit) & mask;
