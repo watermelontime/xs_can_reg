@@ -13,7 +13,7 @@
 import * as draw_svg from './draw_bits_svg.js';
 import * as m_can from './m_can.js';
 import * as x_can_prt from './x_can_prt.js';
-import { sevC } from './func_get_bits.js';
+import { sevC } from './help_functions.js';
 
 // global variable definitions
 let par_clk_freq_g = 160; // Global variable for CAN clock frequency in MHz

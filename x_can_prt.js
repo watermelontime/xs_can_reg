@@ -1,6 +1,6 @@
 // X_CAN: Main script for processing CAN XL registers and calculating bit timing parameters
-import { getBits } from './func_get_bits.js';
-import { sevC } from './func_get_bits.js';
+import { getBits } from './help_functions.js';
+import { sevC } from './help_functions.js';
 
 // TODO: rename to X_CAN PRT
 // ===================================================================================
