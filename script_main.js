@@ -687,8 +687,8 @@ function assignHtmlParamsAndResults(reg, paramsHtml, resultsHtml) {
     resultsHtml['res_pwm_symbols_per_bit_time_datxl'] = 'TMS off';
   }
 
-  console.log('[Info] assignHtmlParamsAndResults(): Assigned parameters:', paramsHtml);
-  console.log('[Info] assignHtmlParamsAndResults(): Assigned results:', resultsHtml);
+  console.log('[Info] assignHtmlParamsAndResults(): Assigned parameters (paramsHtml):', paramsHtml);
+  console.log('[Info] assignHtmlParamsAndResults(): Assigned results   (resultsHtml):', resultsHtml);
 }
 
 // ===================================================================================
